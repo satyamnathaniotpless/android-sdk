@@ -1,0 +1,194 @@
+# **Product Requirements Document (PRD)**
+
+## **SNA SDK (SIM Network Authentication SDK)**
+
+### **1. Purpose & Vision**
+
+The **SNA SDK** enables apps to perform **SIM-based network authentication** seamlessly over the user’s **cellular data network**, without requiring manual user interaction.
+
+The SDK is designed to:
+
+* Reliably detect SIM and mobile data state
+* Perform **SNA URL authentication in the background**
+* Handle automatic **HTTP → HTTPS redirects**
+* Return a **final success or failure callback**
+* Remain **extremely lightweight**, fast, and privacy-safe
+
+This SDK will be used by apps that want **silent, frictionless authentication using SIM and mobile network connectivity**.
+
+---
+
+## **2. Key Design Principles**
+
+* **Lightweight SDK**
+
+  * Minimal footprint on app size
+  * No heavy dependencies
+  * Optimized for low memory and battery usage
+
+* **Silent & Background Execution**
+
+  * No UI prompts required
+  * No user interaction needed
+  * Runs fully in the background
+
+* **Cellular-Only Operation**
+
+  * Ensures authentication happens strictly over **mobile data**, not WiFi
+
+* **Privacy-First**
+
+  * No storage of personally identifiable information
+  * Only minimal network and SIM metadata is accessed
+
+---
+
+## **3. Core Functional Capabilities**
+
+### **3.1 Get SIM & Network Details**
+
+The SDK must provide a function to return:
+
+* **SIM MCC (Mobile Country Code)**
+* **SIM MNC (Mobile Network Code)**
+* **Mobile Data Network State**
+
+  * Whether mobile data is currently **ON or OFF**
+
+This enables the host app to:
+
+* Identify which carrier the SIM belongs to
+* Validate whether the network is ready for SNA authentication
+
+---
+
+### **3.2 Check Mobile Data Network Status (Standalone Utility)**
+
+The SDK must expose a simple standalone function to:
+
+* Check whether the **mobile data network is currently enabled or disabled**
+* Return a clear boolean result:
+
+  * `true` → Mobile Data is ON
+  * `false` → Mobile Data is OFF
+
+This function is independent of any SNA API call.
+
+---
+
+### **3.3 Invoke SNA Authentication via URL**
+
+The SDK must allow the host app to:
+
+* Pass:
+
+  * A **SNA authentication URL**
+  * An **optional timeout value** (in seconds)
+
+Once invoked:
+
+* The SDK will:
+
+  * Start a **background SNA API call**
+  * Use **only the cellular data network**
+  * Automatically handle:
+
+    * Initial `http://` URL
+    * Any **302 redirects**
+    * Final redirection to `https://`
+  * Continue execution until either:
+
+    * The final network request completes successfully
+    * Or the timeout duration is reached
+
+---
+
+### **3.4 Background Execution Behavior**
+
+When the SNA URL is invoked:
+
+* The SDK must:
+
+  * Execute in the **background**
+  * Not require the app to:
+
+    * Open a browser
+    * Show WebViews
+    * Launch any UI
+  * Not interrupt the user’s current app session
+
+This ensures **silent SIM authentication**.
+
+---
+
+### **3.5 Timeout Handling**
+
+* The SDK must respect the **timeout value** provided by the host app.
+* If:
+
+  * The full redirect chain does not complete within the defined time
+* Then:
+
+  * The operation must terminate gracefully
+  * A timeout result must be returned
+
+---
+
+### **3.6 Final Result Callback**
+
+Once the SNA URL process completes (or times out), the SDK must return a final result:
+
+* Successful completion of the final URL load
+* Failure due to:
+
+  * Timeout
+  * Network unavailability
+  * Redirect failure
+  * Cellular data being turned off mid-process
+
+The result must clearly indicate:
+
+* **Success or Failure**
+* **Failure Reason (if applicable)**
+
+---
+
+## **4. Input & Output Summary**
+
+### **Inputs to SDK**
+
+* SNA Authentication URL
+* Optional Timeout Duration (in seconds)
+
+### **Outputs from SDK**
+
+* SIM MCC
+* SIM MNC
+* Mobile Data Network Status
+* SNA Execution Result (Success / Failure + Reason)
+
+---
+
+## **5. Domain & Redirect Handling**
+
+* The SDK must:
+
+  * Accept an initial **HTTP SNA URL**
+  * Follow all **302 redirects automatically**
+  * End on a secure **HTTPS final endpoint**
+* The SDK must respect the app’s domain allowlist configuration for redirect flow.
+
+---
+
+## **6. Performance & Footprint Requirements**
+
+* SDK must be:
+
+  * **Extremely lightweight**
+  * **Fast to initialize**
+  * **Non-blocking**
+* Must not:
+
+  * Slow down app launch time
+  * Drain battery excessively
+  * Require continuous background execution when idle

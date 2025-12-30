@@ -1,0 +1,82 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.otplesssdk.utils.utils-sdk-merged_res-6:/values-ar/values-ar.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/cc6216f31ae44f9bde7e7b1391bac8b8/transformed/jetified-play-services-basement-18.4.0/res/values-ar/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "125",
+                        "endOffsets": "320"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "129",
+                        "endOffsets": "180"
+                    }
+                },
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/d40039be04a5977037feab28925e9166/transformed/core-1.2.0/res/values-ar/values-ar.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "185",
+                        "endColumns": "100",
+                        "endOffsets": "281"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "com.otplesssdk.utils.utils-sdk-mergeReleaseResources-4:/values-ar/values-ar.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/cc6216f31ae44f9bde7e7b1391bac8b8/transformed/jetified-play-services-basement-18.4.0/res/values-ar/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "125",
+                        "endOffsets": "320"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "129",
+                        "endOffsets": "180"
+                    }
+                },
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/d40039be04a5977037feab28925e9166/transformed/core-1.2.0/res/values-ar/values-ar.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "185",
+                        "endColumns": "100",
+                        "endOffsets": "281"
+                    }
+                }
+            ]
+        }
+    ]
+}

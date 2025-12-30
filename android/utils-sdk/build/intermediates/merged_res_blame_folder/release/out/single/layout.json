@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "com.otplesssdk.utils.utils-sdk-merged_res-6:/layout/notification_template_part_chronometer.xml",
+        "source": "com.otplesssdk.utils.utils-sdk-core-1.2.0-2:/layout/notification_template_part_chronometer.xml"
+    },
+    {
+        "merged": "com.otplesssdk.utils.utils-sdk-merged_res-6:/layout/notification_template_part_time.xml",
+        "source": "com.otplesssdk.utils.utils-sdk-core-1.2.0-2:/layout/notification_template_part_time.xml"
+    },
+    {
+        "merged": "com.otplesssdk.utils.utils-sdk-merged_res-6:/layout/custom_dialog.xml",
+        "source": "com.otplesssdk.utils.utils-sdk-core-1.2.0-2:/layout/custom_dialog.xml"
+    }
+]

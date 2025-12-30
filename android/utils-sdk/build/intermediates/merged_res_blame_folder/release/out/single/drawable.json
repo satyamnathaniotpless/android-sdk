@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "com.otplesssdk.utils.utils-sdk-merged_res-6:/drawable/notification_bg_low.xml",
+        "source": "com.otplesssdk.utils.utils-sdk-core-1.2.0-2:/drawable/notification_bg_low.xml"
+    },
+    {
+        "merged": "com.otplesssdk.utils.utils-sdk-merged_res-6:/drawable/notification_icon_background.xml",
+        "source": "com.otplesssdk.utils.utils-sdk-core-1.2.0-2:/drawable/notification_icon_background.xml"
+    },
+    {
+        "merged": "com.otplesssdk.utils.utils-sdk-merged_res-6:/drawable/notification_bg.xml",
+        "source": "com.otplesssdk.utils.utils-sdk-core-1.2.0-2:/drawable/notification_bg.xml"
+    },
+    {
+        "merged": "com.otplesssdk.utils.utils-sdk-merged_res-6:/drawable/notification_tile_bg.xml",
+        "source": "com.otplesssdk.utils.utils-sdk-core-1.2.0-2:/drawable/notification_tile_bg.xml"
+    }
+]

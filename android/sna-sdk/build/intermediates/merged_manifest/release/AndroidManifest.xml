@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.otplesssdk.sna" >
+
+    <uses-sdk android:minSdkVersion="21" />
+
+    <!-- Used to determine whether a cellular network with Internet capability exists. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for ConnectivityManager.requestNetwork() used to acquire cellular for SNA calls. -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+
+</manifest>

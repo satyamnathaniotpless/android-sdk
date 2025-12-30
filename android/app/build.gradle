@@ -1,0 +1,60 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.0'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+android {
+    namespace 'com.sna.sdk.testapp'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.sna.sdk.testapp"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+    implementation project(':sna-sdk')  // Reference the SNA SDK module
+    implementation project(':otp-sdk')  // Reference the OTP SDK module
+    implementation project(':utils-sdk') // Direct access for DeviceInfoCollector test/debug
+
+    // Needed so IdentifiersCollector reflection can find AdvertisingIdClient and fetch GAID.
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.0.1'
+    
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+}

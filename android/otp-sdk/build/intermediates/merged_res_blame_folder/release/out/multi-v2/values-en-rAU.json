@@ -1,0 +1,34 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.otplesssdk.otp.otp-sdk-merged_res-16:/values-en-rAU/values-en-rAU.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/05797d0eb95604cfda5fa3aa9473cd2b/transformed/core-1.8.0/res/values-en-rAU/values-en-rAU.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "com.otplesssdk.otp.otp-sdk-mergeReleaseResources-14:/values-en-rAU/values-en-rAU.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/05797d0eb95604cfda5fa3aa9473cd2b/transformed/core-1.8.0/res/values-en-rAU/values-en-rAU.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    }
+                }
+            ]
+        }
+    ]
+}

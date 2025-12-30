@@ -1,0 +1,82 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.otplesssdk.sna.sna-sdk-mergeReleaseResources-4:/values-mk/values-mk.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/cc6216f31ae44f9bde7e7b1391bac8b8/transformed/jetified-play-services-basement-18.4.0/res/values-mk/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "132",
+                        "endOffsets": "327"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "136",
+                        "endOffsets": "187"
+                    }
+                },
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/d40039be04a5977037feab28925e9166/transformed/core-1.2.0/res/values-mk/values-mk.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "192",
+                        "endColumns": "100",
+                        "endOffsets": "288"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "com.otplesssdk.sna.sna-sdk-merged_res-6:/values-mk/values-mk.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/cc6216f31ae44f9bde7e7b1391bac8b8/transformed/jetified-play-services-basement-18.4.0/res/values-mk/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "132",
+                        "endOffsets": "327"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "136",
+                        "endOffsets": "187"
+                    }
+                },
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/d40039be04a5977037feab28925e9166/transformed/core-1.2.0/res/values-mk/values-mk.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "192",
+                        "endColumns": "100",
+                        "endOffsets": "288"
+                    }
+                }
+            ]
+        }
+    ]
+}

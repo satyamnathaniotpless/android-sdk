@@ -1,0 +1,82 @@
+# compiler: R8
+# compiler_version: 8.2.33
+# common_typos_disable
+# {"id":"com.android.tools.r8.mapping","version":"2.2"}
+# pg_map_id: 75fbc15
+# pg_map_hash: SHA-256 75fbc15f65d2eecf44bc1833a061a36faa9aae5426cd5191d1300a977a90692d
+com.otplesssdk.otp.OtpSdk -> com.otplesssdk.otp.OtpSdk:
+# {"id":"sourceFile","fileName":"OtpSdk.kt"}
+    1:1:void <init>(android.content.Context):0:0 -> <init>
+    2:2:void <init>(android.content.Context,kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
+    1:1:com.otplesssdk.otp.OtpSdk initialize(android.content.Context):0:0 -> initialize
+    2:2:com.otplesssdk.otp.OtpSdk initialize(android.content.Context,java.lang.String):0:0 -> initialize
+    3:3:com.otplesssdk.otp.OtpSdk initialize(android.content.Context,java.lang.String,java.lang.String):0:0 -> initialize
+com.otplesssdk.otp.OtpSdk$Companion -> com.otplesssdk.otp.OtpSdk$Companion:
+# {"id":"sourceFile","fileName":"OtpSdk.kt"}
+    1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
+    1:1:com.otplesssdk.otp.OtpSdk initialize(android.content.Context):0:0 -> initialize
+    2:2:com.otplesssdk.otp.OtpSdk initialize(android.content.Context,java.lang.String):0:0 -> initialize
+    3:3:com.otplesssdk.otp.OtpSdk initialize(android.content.Context,java.lang.String,java.lang.String):0:0 -> initialize
+com.otplesssdk.otp.callback.OtpCallback -> com.otplesssdk.otp.callback.OtpCallback:
+# {"id":"sourceFile","fileName":"OtpCallback.kt"}
+com.otplesssdk.otp.models.AppHash -> com.otplesssdk.otp.models.AppHash:
+# {"id":"sourceFile","fileName":"AppHash.kt"}
+com.otplesssdk.otp.models.OtpChannel -> com.otplesssdk.otp.models.OtpChannel:
+# {"id":"sourceFile","fileName":"OtpChannel.kt"}
+com.otplesssdk.otp.models.OtpConfig -> com.otplesssdk.otp.models.OtpConfig:
+# {"id":"sourceFile","fileName":"OtpConfig.kt"}
+    1:1:void <init>():0:0 -> <init>
+    2:2:void <init>(int,java.util.Set,long,boolean,int,int,java.util.List,java.util.List,long):0:0 -> <init>
+    3:3:void <init>(int,java.util.Set,long,boolean,int,int,java.util.List,java.util.List,long,int,kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
+com.otplesssdk.otp.models.OtpConfig$Companion -> com.otplesssdk.otp.models.OtpConfig$Companion:
+# {"id":"sourceFile","fileName":"OtpConfig.kt"}
+    1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
+com.otplesssdk.otp.models.OtpErrorReason -> com.otplesssdk.otp.models.OtpErrorReason:
+# {"id":"sourceFile","fileName":"OtpErrorReason.kt"}
+com.otplesssdk.otp.models.OtpResult -> com.otplesssdk.otp.models.OtpResult:
+# {"id":"sourceFile","fileName":"OtpResult.kt"}
+    1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
+com.otplesssdk.otp.models.OtpResult$Error -> com.otplesssdk.otp.models.OtpResult$Error:
+# {"id":"sourceFile","fileName":"OtpResult.kt"}
+    1:1:void <init>(com.otplesssdk.otp.models.OtpErrorReason,com.otplesssdk.otp.models.OtpChannel,java.lang.String,java.lang.String):0:0 -> <init>
+    2:2:void <init>(com.otplesssdk.otp.models.OtpErrorReason,com.otplesssdk.otp.models.OtpChannel,java.lang.String,java.lang.String,int,kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
+com.otplesssdk.otp.models.OtpResult$Success -> com.otplesssdk.otp.models.OtpResult$Success:
+# {"id":"sourceFile","fileName":"OtpResult.kt"}
+    1:1:void <init>(java.lang.String,com.otplesssdk.otp.models.OtpChannel,java.lang.String):0:0 -> <init>
+    2:2:void <init>(java.lang.String,com.otplesssdk.otp.models.OtpChannel,java.lang.String,int,kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
+com.otplesssdk.otp.receiver.SmsRetrieverReceiver -> com.otplesssdk.otp.receiver.SmsRetrieverReceiver:
+# {"id":"sourceFile","fileName":"SmsRetrieverReceiver.kt"}
+com.otplesssdk.otp.receiver.WhatsAppOtpErrorReceiver -> com.otplesssdk.otp.receiver.WhatsAppOtpErrorReceiver:
+# {"id":"sourceFile","fileName":"WhatsAppOtpErrorReceiver.kt"}
+com.otplesssdk.otp.receiver.WhatsAppOtpReceiver -> com.otplesssdk.otp.receiver.WhatsAppOtpReceiver:
+# {"id":"sourceFile","fileName":"WhatsAppOtpReceiver.kt"}
+com.otplesssdk.otp.utils.OtpDispatcher -> com.otplesssdk.otp.utils.OtpDispatcher:
+# {"id":"sourceFile","fileName":"OtpDispatcher.kt"}
+com.otplesssdk.otp.utils.OtpDispatcher$OtpSession -> com.otplesssdk.otp.utils.OtpDispatcher$OtpSession:
+# {"id":"sourceFile","fileName":"OtpDispatcher.kt"}
+com.otplesssdk.otp.utils.OtpDispatcher$OtpSession$WhenMappings -> com.otplesssdk.otp.utils.OtpDispatcher$OtpSession$WhenMappings:
+# {"id":"sourceFile","fileName":"OtpDispatcher.kt"}
+com.otplesssdk.otp.utils.OtpDispatcher$WhenMappings -> com.otplesssdk.otp.utils.OtpDispatcher$WhenMappings:
+# {"id":"sourceFile","fileName":"OtpDispatcher.kt"}
+com.otplesssdk.otp.utils.OtpDispatcher$dispatch$2 -> com.otplesssdk.otp.utils.OtpDispatcher$dispatch$2:
+# {"id":"sourceFile","fileName":"OtpDispatcher.kt"}
+    1:1:java.lang.Object invoke(java.lang.Object,java.lang.Object):0:0 -> invoke
+    2:2:java.lang.Object invoke(kotlinx.coroutines.CoroutineScope,kotlin.coroutines.Continuation):0:0 -> invoke
+com.otplesssdk.otp.utils.OtpDispatcher$startWhatsAppHandshake$timeoutJob$1 -> com.otplesssdk.otp.utils.OtpDispatcher$startWhatsAppHandshake$timeoutJob$1:
+# {"id":"sourceFile","fileName":"OtpDispatcher.kt"}
+    1:1:java.lang.Object invoke(java.lang.Object,java.lang.Object):0:0 -> invoke
+    2:2:java.lang.Object invoke(kotlinx.coroutines.CoroutineScope,kotlin.coroutines.Continuation):0:0 -> invoke
+com.otplesssdk.otp.utils.OtpParser -> com.otplesssdk.otp.utils.OtpParser:
+# {"id":"sourceFile","fileName":"OtpParser.kt"}
+com.otplesssdk.otp.utils.OtpStorage -> com.otplesssdk.otp.utils.OtpStorage:
+# {"id":"sourceFile","fileName":"OtpStorage.kt"}
+com.otplesssdk.otp.utils.OtpStorage$StoredOtp -> com.otplesssdk.otp.utils.OtpStorage$StoredOtp:
+# {"id":"sourceFile","fileName":"OtpStorage.kt"}
+com.otplesssdk.otp.utils.OtpStorage$StoredType -> com.otplesssdk.otp.utils.OtpStorage$StoredType:
+# {"id":"sourceFile","fileName":"OtpStorage.kt"}
+com.otplesssdk.otp.utils.PendingIntentReader -> com.otplesssdk.otp.utils.PendingIntentReader:
+# {"id":"sourceFile","fileName":"PendingIntentReader.kt"}
+com.otplesssdk.otp.utils.SmsRetrieverAppHash -> com.otplesssdk.otp.utils.SmsRetrieverAppHash:
+# {"id":"sourceFile","fileName":"SmsRetrieverAppHash.kt"}
+com.otplesssdk.otp.utils.WhatsAppOtpHelper -> com.otplesssdk.otp.utils.WhatsAppOtpHelper:
+# {"id":"sourceFile","fileName":"WhatsAppOtpHelper.kt"}

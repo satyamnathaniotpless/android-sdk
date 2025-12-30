@@ -1,0 +1,19 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.otplesssdk.sna" >
+4
+5    <uses-sdk android:minSdkVersion="21" />
+6
+7    <!-- Used to determine whether a cellular network with Internet capability exists. -->
+8    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+8-->/Users/satyamnathani/Code/sna sdk/android/sna-sdk/src/main/AndroidManifest.xml:5:5-79
+8-->/Users/satyamnathani/Code/sna sdk/android/sna-sdk/src/main/AndroidManifest.xml:5:22-76
+9    <uses-permission android:name="android.permission.INTERNET" />
+9-->/Users/satyamnathani/Code/sna sdk/android/sna-sdk/src/main/AndroidManifest.xml:6:5-67
+9-->/Users/satyamnathani/Code/sna sdk/android/sna-sdk/src/main/AndroidManifest.xml:6:22-64
+10    <!-- Required for ConnectivityManager.requestNetwork() used to acquire cellular for SNA calls. -->
+11    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+11-->/Users/satyamnathani/Code/sna sdk/android/sna-sdk/src/main/AndroidManifest.xml:8:5-79
+11-->/Users/satyamnathani/Code/sna sdk/android/sna-sdk/src/main/AndroidManifest.xml:8:22-76
+12
+13</manifest>

@@ -1,0 +1,82 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.otplesssdk.sna.sna-sdk-mergeReleaseResources-4:/values-fr-rCA/values-fr-rCA.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/d40039be04a5977037feab28925e9166/transformed/core-1.2.0/res/values-fr-rCA/values-fr-rCA.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "216",
+                        "endColumns": "100",
+                        "endOffsets": "312"
+                    }
+                },
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/cc6216f31ae44f9bde7e7b1391bac8b8/transformed/jetified-play-services-basement-18.4.0/res/values-fr-rCA/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "199",
+                        "endColumns": "156",
+                        "endOffsets": "355"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "160",
+                        "endOffsets": "211"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "com.otplesssdk.sna.sna-sdk-merged_res-6:/values-fr-rCA/values-fr-rCA.xml",
+            "map": [
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/d40039be04a5977037feab28925e9166/transformed/core-1.2.0/res/values-fr-rCA/values-fr-rCA.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "100",
+                        "endOffsets": "151"
+                    },
+                    "to": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "216",
+                        "endColumns": "100",
+                        "endOffsets": "312"
+                    }
+                },
+                {
+                    "source": "/Users/satyamnathani/.gradle/caches/8.10/transforms/cc6216f31ae44f9bde7e7b1391bac8b8/transformed/jetified-play-services-basement-18.4.0/res/values-fr-rCA/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "199",
+                        "endColumns": "156",
+                        "endOffsets": "355"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "160",
+                        "endOffsets": "211"
+                    }
+                }
+            ]
+        }
+    ]
+}

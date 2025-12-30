@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "com.otplesssdk.otp.otp-sdk-merged_res-16:/color/common_google_signin_btn_text_dark.xml",
+        "source": "com.otplesssdk.otp.otp-sdk-jetified-play-services-base-18.5.0-12:/color/common_google_signin_btn_text_dark.xml"
+    },
+    {
+        "merged": "com.otplesssdk.otp.otp-sdk-merged_res-16:/color/common_google_signin_btn_text_light.xml",
+        "source": "com.otplesssdk.otp.otp-sdk-jetified-play-services-base-18.5.0-12:/color/common_google_signin_btn_text_light.xml"
+    },
+    {
+        "merged": "com.otplesssdk.otp.otp-sdk-merged_res-16:/color/common_google_signin_btn_tint.xml",
+        "source": "com.otplesssdk.otp.otp-sdk-jetified-play-services-base-18.5.0-12:/color/common_google_signin_btn_tint.xml"
+    }
+]

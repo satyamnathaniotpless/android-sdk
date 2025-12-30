@@ -1,0 +1,21 @@
+com.otplesssdk.otp.otp-sdk-core-1.8.0-0 /Users/satyamnathani/.gradle/caches/8.10/transforms/05797d0eb95604cfda5fa3aa9473cd2b/transformed/core-1.8.0/res
+com.otplesssdk.otp.otp-sdk-lifecycle-livedata-core-2.5.1-1 /Users/satyamnathani/.gradle/caches/8.10/transforms/25391e4b9078cb2afa446d32351d83e8/transformed/lifecycle-livedata-core-2.5.1/res
+com.otplesssdk.otp.otp-sdk-jetified-activity-1.5.1-2 /Users/satyamnathani/.gradle/caches/8.10/transforms/28011804fe02539f32784f88a008c836/transformed/jetified-activity-1.5.1/res
+com.otplesssdk.otp.otp-sdk-jetified-core-common-2.0.4-3 /Users/satyamnathani/.gradle/caches/8.10/transforms/3574f1d40381caadea1cef03a2f6bb97/transformed/jetified-core-common-2.0.4/res
+com.otplesssdk.otp.otp-sdk-jetified-savedstate-1.2.0-4 /Users/satyamnathani/.gradle/caches/8.10/transforms/53a460e5b98a5e959bc7b09e839af3fd/transformed/jetified-savedstate-1.2.0/res
+com.otplesssdk.otp.otp-sdk-jetified-play-services-basement-18.5.0-5 /Users/satyamnathani/.gradle/caches/8.10/transforms/6d8ab991b15d497a2649a2edf06452a0/transformed/jetified-play-services-basement-18.5.0/res
+com.otplesssdk.otp.otp-sdk-fragment-1.5.7-6 /Users/satyamnathani/.gradle/caches/8.10/transforms/7eff4d9365274e4af5ef304b9365542b/transformed/fragment-1.5.7/res
+com.otplesssdk.otp.otp-sdk-lifecycle-viewmodel-2.5.1-7 /Users/satyamnathani/.gradle/caches/8.10/transforms/9face6ae039a1154fdf9f3a667e7061e/transformed/lifecycle-viewmodel-2.5.1/res
+com.otplesssdk.otp.otp-sdk-jetified-annotation-experimental-1.1.0-8 /Users/satyamnathani/.gradle/caches/8.10/transforms/a2b340d188e8d7f7d1069c6075a58aec/transformed/jetified-annotation-experimental-1.1.0/res
+com.otplesssdk.otp.otp-sdk-lifecycle-runtime-2.5.1-9 /Users/satyamnathani/.gradle/caches/8.10/transforms/a764417503540a8644c1580ee928a943/transformed/lifecycle-runtime-2.5.1/res
+com.otplesssdk.otp.otp-sdk-jetified-lifecycle-viewmodel-savedstate-2.5.1-10 /Users/satyamnathani/.gradle/caches/8.10/transforms/afed98478e3b5a68a4f28226b5054195/transformed/jetified-lifecycle-viewmodel-savedstate-2.5.1/res
+com.otplesssdk.otp.otp-sdk-jetified-play-services-auth-21.4.0-11 /Users/satyamnathani/.gradle/caches/8.10/transforms/b4da27153729c5da663014c8883995d9/transformed/jetified-play-services-auth-21.4.0/res
+com.otplesssdk.otp.otp-sdk-jetified-play-services-base-18.5.0-12 /Users/satyamnathani/.gradle/caches/8.10/transforms/d0044224d5324ff346d1c7bbfb6cf32e/transformed/jetified-play-services-base-18.5.0/res
+com.otplesssdk.otp.otp-sdk-pngs-13 /Users/satyamnathani/Code/sna sdk/android/otp-sdk/build/generated/res/pngs/release
+com.otplesssdk.otp.otp-sdk-resValues-14 /Users/satyamnathani/Code/sna sdk/android/otp-sdk/build/generated/res/resValues/release
+com.otplesssdk.otp.otp-sdk-mergeReleaseResources-15 /Users/satyamnathani/Code/sna sdk/android/otp-sdk/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+com.otplesssdk.otp.otp-sdk-mergeReleaseResources-16 /Users/satyamnathani/Code/sna sdk/android/otp-sdk/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+com.otplesssdk.otp.otp-sdk-merged_res-17 /Users/satyamnathani/Code/sna sdk/android/otp-sdk/build/intermediates/merged_res/release
+com.otplesssdk.otp.otp-sdk-main-18 /Users/satyamnathani/Code/sna sdk/android/otp-sdk/src/main/res
+com.otplesssdk.otp.otp-sdk-release-19 /Users/satyamnathani/Code/sna sdk/android/otp-sdk/src/release/res
+com.otplesssdk.otp.otp-sdk-packaged_res-20 /Users/satyamnathani/Code/sna sdk/android/utils-sdk/build/intermediates/packaged_res/release

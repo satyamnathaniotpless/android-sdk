@@ -1,0 +1,139 @@
+--- adb starting (pid 28735) ---
+12-15 20:58:02.241 28735 4074539 I adb     : main.cpp:63 Android Debug Bridge version 1.0.41
+12-15 20:58:02.241 28735 4074539 I adb     : main.cpp:63 Version 35.0.1-11580240
+12-15 20:58:02.241 28735 4074539 I adb     : main.cpp:63 Installed as /Users/satyamnathani/Library/Android/sdk/platform-tools/adb
+12-15 20:58:02.241 28735 4074539 I adb     : main.cpp:63 Running on Darwin 25.0.0 (arm64)
+12-15 20:58:02.241 28735 4074539 I adb     : main.cpp:63 
+12-15 20:58:02.244 28735 4074539 I adb     : auth.cpp:416 adb_auth_init...
+12-15 20:58:02.247 28735 4074539 I adb     : auth.cpp:152 loaded new key from '/Users/satyamnathani/.android/adbkey' with fingerprint E6266149486403DB78693CC2521C2FFE2F293575D7611F61874953348428E2D9
+12-15 21:00:48.334 28735 4080610 I adb     : transport.cpp:310 emulator-5554: write thread spawning
+12-15 21:00:48.334 28735 4080609 I adb     : transport.cpp:338 emulator-5554: read thread spawning
+12-15 21:00:56.192 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport emulator-5554
+12-15 21:00:56.192 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-15 21:00:56.198 28735 4074539 I adb     : adb.cpp:180 emulator-5554: offline
+12-15 22:24:05.254 28735 4266963 W adb     : usb_libusb.cpp:377 failed to get active config descriptor for device at 1-0: LIBUSB_ERROR_NOT_FOUND
+12-15 22:40:22.782 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-15 22:40:22.783 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-15 22:40:22.844 28735 4074539 I adb     : auth.cpp:435 Calling send_auth_publickey
+12-15 22:40:27.043 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-15 22:41:32.900 28735 4080609 I adb     : transport.cpp:342 emulator-5554: read failed: Undefined error: 0
+12-15 22:41:32.901 28735 4080609 I adb     : transport.cpp:1150 emulator-5554: connection terminated: read failed
+12-15 22:41:32.901 28735 4074539 I adb     : adb.cpp:180 emulator-5554: offline
+12-15 22:41:32.901 28735 4074539 I adb     : transport.cpp:833 destroying transport emulator-5554
+12-15 22:41:32.901 28735 4074539 I adb     : transport.cpp:410 BlockingConnectionAdapter(emulator-5554): stopping
+12-15 22:41:32.901 28735 4074539 I adb     : transport.cpp:428 BlockingConnectionAdapter(emulator-5554): stopped
+12-15 22:41:33.153 28735 4074539 I adb     : transport.cpp:297 BlockingConnectionAdapter(emulator-5554): destructing
+12-15 22:41:33.153 28735 4074539 I adb     : transport.cpp:403 BlockingConnectionAdapter(emulator-5554): already stopped
+12-15 22:45:11.044 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-15 22:45:11.046 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-15 22:45:11.046 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-15 22:45:11.146 28735 4074539 E adb     : usb_libusb.cpp:318 libusb_submit_transfer failed: Other error
+12-15 22:45:11.146 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-15 22:46:49.389 28735 4266963 W adb     : usb_libusb.cpp:377 failed to get active config descriptor for device at 1-0: LIBUSB_ERROR_NOT_FOUND
+12-15 22:47:15.735 28735 4266963 E adb     : usb_libusb.cpp:609 failed to clear halt on device 'USQW699LKRM77XNJ' endpoint 0x81: LIBUSB_ERROR_OTHER
+12-15 22:47:17.960 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-15 22:47:17.960 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-15 22:47:17.960 28735 4074539 I adb     : adb.cpp:176 USQW699LKRM77XNJ: already offline
+12-15 22:47:17.960 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-15 23:41:37.033 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-15 23:41:37.033 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-15 23:41:37.046 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:03:23.221 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:03:23.223 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:03:23.223 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:03:23.224 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:03:31.831 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:03:31.831 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:03:31.831 28735 4074539 I adb     : adb.cpp:176 USQW699LKRM77XNJ: already offline
+12-16 00:03:31.831 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:03:32.197 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 00:03:32.197 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 00:03:32.198 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:03:32.198 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:03:32.202 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:03:32.202 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:03:52.655 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:03:52.655 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:03:52.656 28735 4074539 I adb     : adb.cpp:176 USQW699LKRM77XNJ: already offline
+12-16 00:03:52.656 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:03:52.967 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 00:03:52.967 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 00:03:52.974 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:03:53.147 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:03:53.148 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:03:53.148 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:03:53.148 28735 4074539 E adb     : usb_libusb.cpp:318 libusb_submit_transfer failed: No such device (it may have been disconnected)
+12-16 00:03:53.148 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:03:56.289 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 00:03:56.289 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 00:03:56.294 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:11:41.995 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:11:41.996 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:11:41.996 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:11:41.996 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:11:43.005 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:11:43.005 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:11:43.006 28735 4074539 I adb     : adb.cpp:176 USQW699LKRM77XNJ: already offline
+12-16 00:11:43.006 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:11:43.328 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 00:11:43.329 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 00:11:43.335 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:12:47.370 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:12:47.371 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:12:47.371 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:12:47.372 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:40:44.062 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 00:40:44.062 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 00:40:44.069 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:56:07.152 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:56:07.152 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:56:07.152 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:56:07.153 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:56:07.756 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:56:07.756 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:56:07.756 28735 4074539 I adb     : adb.cpp:176 USQW699LKRM77XNJ: already offline
+12-16 00:56:07.756 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:56:08.069 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 00:56:08.069 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 00:56:08.084 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:56:08.233 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:56:08.233 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:56:08.233 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 00:56:08.233 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:56:11.791 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 00:56:11.791 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 00:56:11.791 28735 4074539 I adb     : adb.cpp:176 USQW699LKRM77XNJ: already offline
+12-16 00:56:11.791 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 00:56:13.289 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 00:56:13.289 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 00:56:13.295 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 01:01:24.731 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 01:01:24.733 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 01:01:24.733 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 01:01:24.734 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 02:23:45.928 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 02:23:45.929 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 02:23:45.943 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 02:32:49.418 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 02:32:49.418 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 02:32:49.418 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 02:32:49.419 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 02:37:00.964 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 02:37:00.964 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 02:37:00.964 28735 4074539 I adb     : adb.cpp:176 USQW699LKRM77XNJ: already offline
+12-16 02:37:00.964 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 02:37:01.278 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 02:37:01.278 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 02:37:01.286 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 02:37:03.345 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 02:37:03.345 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 02:37:03.345 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 02:37:03.345 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 03:14:04.089 28735 4074539 I adb     : transport.cpp:1704 fetching keys for transport USQW699LKRM77XNJ
+12-16 03:14:04.089 28735 4074539 I adb     : auth.cpp:468 Calling send_auth_response
+12-16 03:14:04.094 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 03:24:55.892 28735 4074543 E adb     : usb_libusb.cpp:177 usb read failed: status = 1
+12-16 03:24:55.893 28735 4074543 I adb     : transport.cpp:1150 USQW699LKRM77XNJ: connection terminated: usb read failed: status = 1
+12-16 03:24:55.893 28735 4074539 I adb     : adb.cpp:180 USQW699LKRM77XNJ: offline
+12-16 03:24:55.893 28735 4074539 I adb     : transport.cpp:833 destroying transport USQW699LKRM77XNJ
+12-16 03:24:56.873 28735 4266963 E adb     : usb_libusb.cpp:571 failed to open device: No such device (it may have been disconnected)
