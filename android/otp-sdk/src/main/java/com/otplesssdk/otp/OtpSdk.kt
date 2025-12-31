@@ -61,13 +61,15 @@ class OtpSdk private constructor(private val context: Context) {
             val hashes = SmsRetrieverAppHash.getAppHashes(context.applicationContext)
             
             // Send event
-            EventSender.sendEvent(
-                eventName = "otp_app_hash_requested",
-                properties = mapOf(
-                    "hash_count" to hashes.size,
-                    "package_names" to hashes.map { it.packageName }
+            if (EventSender.isInitialized()) {
+                EventSender.sendEvent(
+                    eventName = "otp_app_hash_requested",
+                    properties = mapOf(
+                        "hash_count" to hashes.size,
+                        "package_names" to hashes.map { it.packageName }
+                    )
                 )
-            )
+            }
             
             return hashes
         }

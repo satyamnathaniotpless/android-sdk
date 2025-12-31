@@ -1,6 +1,8 @@
 package com.otplesssdk.utils.deviceinfo
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.ProxyInfo
@@ -8,10 +10,16 @@ import android.os.Build
 import android.telephony.SubscriptionManager
 import android.telephony.SubscriptionInfo
 import android.telephony.TelephonyManager
+import androidx.core.content.ContextCompat
 import com.otplesssdk.utils.logger.SdkLogger
 
 /**
  * Collects network and telephony-related information.
+ *
+ * Permissions (best-effort; missing permissions never throw):
+ * - Optional (recommended): `android.permission.ACCESS_NETWORK_STATE` (normal)
+ * - Optional (recommended for richer telephony/subscription fields): `android.permission.READ_PHONE_STATE`
+ *   or `android.permission.READ_BASIC_PHONE_STATE` (Android 13+). If missing, those fields are omitted (null).
  */
 internal object NetworkInfoCollector {
     private const val TAG = "NetworkInfoCollector"
@@ -28,6 +36,7 @@ internal object NetworkInfoCollector {
 
         // Prefer default-data subscription for the primary SIM/operator fields.
         val tmForCurrent = defaultDataTm ?: telephonyManager
+        val hasTelephonyPermission = hasTelephonyReadPermission(context)
 
         return NetworkInfo(
             networkType = getNetworkType(connectivityManager),
@@ -35,21 +44,21 @@ internal object NetworkInfoCollector {
             hasInternetCapability = getHasInternetCapability(connectivityManager),
             isValidated = getIsValidated(connectivityManager),
             isMetered = getIsMetered(connectivityManager),
-            networkOperator = safeString { tmForCurrent?.networkOperator },
-            networkOperatorName = safeString { tmForCurrent?.networkOperatorName },
-            simOperator = safeString { tmForCurrent?.simOperator },
-            simOperatorName = safeString { tmForCurrent?.simOperatorName },
-            simCountryIso = safeString { tmForCurrent?.simCountryIso },
+            networkOperator = getNetworkOperator(context, tmForCurrent, hasTelephonyPermission),
+            networkOperatorName = getNetworkOperatorName(context, tmForCurrent, hasTelephonyPermission),
+            simOperator = getSimOperator(context, tmForCurrent, hasTelephonyPermission),
+            simOperatorName = getSimOperatorName(context, tmForCurrent, hasTelephonyPermission),
+            simCountryIso = getSimCountryIso(context, tmForCurrent, hasTelephonyPermission),
             phoneType = getPhoneType(tmForCurrent),
-            isRoaming = safeBoolean { tmForCurrent?.isNetworkRoaming },
-            networkGeneration = getNetworkGeneration(tmForCurrent),
-            isDataEnabled = getIsDataEnabled(tmForCurrent),
+            isRoaming = getIsRoaming(context, tmForCurrent, hasTelephonyPermission),
+            networkGeneration = getNetworkGeneration(context, tmForCurrent, hasTelephonyPermission),
+            isDataEnabled = getIsDataEnabled(context, tmForCurrent, hasTelephonyPermission),
             simSlotCount = getSimSlotCount(context),
             networkSubType = getNetworkSubType(connectivityManager, context),
             isVpnTransportActive = getIsVpnTransportActive(connectivityManager),
-            dataNetworkType = getDataNetworkType(tmForCurrent),
-            carrierId = getCarrierId(tmForCurrent),
-            callState = safeInt { (defaultCallTm ?: tmForCurrent)?.callState },
+            dataNetworkType = getDataNetworkType(context, tmForCurrent, hasTelephonyPermission),
+            carrierId = getCarrierId(context, tmForCurrent, hasTelephonyPermission),
+            callState = getCallState(context, (defaultCallTm ?: tmForCurrent), hasTelephonyPermission),
             proxyHost = getProxyHost(connectivityManager),
             proxyPort = getProxyPort(connectivityManager),
 
@@ -59,20 +68,20 @@ internal object NetworkInfoCollector {
                 DefaultSubscriptionInfo(
                     subscriptionId = it,
                     network = SubscriptionNetworkInfo(
-                        networkOperator = safeString { defaultDataTm?.networkOperator },
-                        networkOperatorName = safeString { defaultDataTm?.networkOperatorName },
-                        networkCountryIso = safeString { defaultDataTm?.networkCountryIso },
-                        networkGeneration = getNetworkGeneration(defaultDataTm),
-                        dataNetworkType = getDataNetworkType(defaultDataTm),
-                        voiceNetworkType = getVoiceNetworkType(defaultDataTm),
-                        carrierId = getCarrierId(defaultDataTm),
-                        isRoaming = safeBoolean { defaultDataTm?.isNetworkRoaming }
+                        networkOperator = getNetworkOperator(context, defaultDataTm, hasTelephonyPermission),
+                        networkOperatorName = getNetworkOperatorName(context, defaultDataTm, hasTelephonyPermission),
+                        networkCountryIso = getNetworkCountryIso(context, defaultDataTm, hasTelephonyPermission),
+                        networkGeneration = getNetworkGeneration(context, defaultDataTm, hasTelephonyPermission),
+                        dataNetworkType = getDataNetworkType(context, defaultDataTm, hasTelephonyPermission),
+                        voiceNetworkType = getVoiceNetworkType(context, defaultDataTm, hasTelephonyPermission),
+                        carrierId = getCarrierId(context, defaultDataTm, hasTelephonyPermission),
+                        isRoaming = getIsRoaming(context, defaultDataTm, hasTelephonyPermission)
                     ),
                     sim = SubscriptionSimInfo(
-                        simOperator = safeString { defaultDataTm?.simOperator },
-                        simOperatorName = safeString { defaultDataTm?.simOperatorName },
-                        simCountryIso = safeString { defaultDataTm?.simCountryIso },
-                        isDataEnabled = getIsDataEnabled(defaultDataTm)
+                        simOperator = getSimOperator(context, defaultDataTm, hasTelephonyPermission),
+                        simOperatorName = getSimOperatorName(context, defaultDataTm, hasTelephonyPermission),
+                        simCountryIso = getSimCountryIso(context, defaultDataTm, hasTelephonyPermission),
+                        isDataEnabled = getIsDataEnabled(context, defaultDataTm, hasTelephonyPermission)
                     )
                 )
             },
@@ -80,19 +89,19 @@ internal object NetworkInfoCollector {
                 DefaultSubscriptionInfo(
                     subscriptionId = it,
                     network = SubscriptionNetworkInfo(
-                        networkOperator = safeString { defaultCallTm?.networkOperator },
-                        networkOperatorName = safeString { defaultCallTm?.networkOperatorName },
-                        networkCountryIso = safeString { defaultCallTm?.networkCountryIso },
-                        networkGeneration = getNetworkGeneration(defaultCallTm),
-                        dataNetworkType = getDataNetworkType(defaultCallTm),
-                        voiceNetworkType = getVoiceNetworkType(defaultCallTm),
-                        carrierId = getCarrierId(defaultCallTm),
-                        isRoaming = safeBoolean { defaultCallTm?.isNetworkRoaming }
+                        networkOperator = getNetworkOperator(context, defaultCallTm, hasTelephonyPermission),
+                        networkOperatorName = getNetworkOperatorName(context, defaultCallTm, hasTelephonyPermission),
+                        networkCountryIso = getNetworkCountryIso(context, defaultCallTm, hasTelephonyPermission),
+                        networkGeneration = getNetworkGeneration(context, defaultCallTm, hasTelephonyPermission),
+                        dataNetworkType = getDataNetworkType(context, defaultCallTm, hasTelephonyPermission),
+                        voiceNetworkType = getVoiceNetworkType(context, defaultCallTm, hasTelephonyPermission),
+                        carrierId = getCarrierId(context, defaultCallTm, hasTelephonyPermission),
+                        isRoaming = getIsRoaming(context, defaultCallTm, hasTelephonyPermission)
                     ),
                     sim = SubscriptionSimInfo(
-                        simOperator = safeString { defaultCallTm?.simOperator },
-                        simOperatorName = safeString { defaultCallTm?.simOperatorName },
-                        simCountryIso = safeString { defaultCallTm?.simCountryIso },
+                        simOperator = getSimOperator(context, defaultCallTm, hasTelephonyPermission),
+                        simOperatorName = getSimOperatorName(context, defaultCallTm, hasTelephonyPermission),
+                        simCountryIso = getSimCountryIso(context, defaultCallTm, hasTelephonyPermission),
                         isDataEnabled = null
                     )
                 )
@@ -102,6 +111,7 @@ internal object NetworkInfoCollector {
 
     private fun getAllSubscriptions(context: Context, telephonyManager: TelephonyManager?): List<NetworkSubscription>? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) return null
+        if (!hasTelephonyReadPermission(context)) return null
         val sm = try {
             context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
         } catch (_: Exception) {
@@ -109,6 +119,7 @@ internal object NetworkInfoCollector {
         } ?: return null
 
         val list: List<SubscriptionInfo> = try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyReadPermission(context) above.
             sm.activeSubscriptionInfoList ?: return emptyList()
         } catch (e: SecurityException) {
             SdkLogger.d(TAG, "activeSubscriptionInfoList blocked: ${e.javaClass.name}: ${e.message}")
@@ -118,6 +129,7 @@ internal object NetworkInfoCollector {
             return null
         }
 
+        val hasReadPerm = hasTelephonyReadPermission(context)
         return list.mapNotNull { si ->
             val subId = si.subscriptionId
             val tm = createTelephonyManagerForSubId(telephonyManager, subId)
@@ -136,20 +148,20 @@ internal object NetworkInfoCollector {
                 groupUuid = safeString { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) si.groupUuid?.toString() else null },
                 simState = simState?.let { simStateToString(it) },
                 network = SubscriptionNetworkInfo(
-                    networkOperator = safeString { tm?.networkOperator },
-                    networkOperatorName = safeString { tm?.networkOperatorName },
-                    networkCountryIso = safeString { tm?.networkCountryIso },
-                    networkGeneration = getNetworkGeneration(tm),
-                    dataNetworkType = getDataNetworkType(tm),
-                    voiceNetworkType = getVoiceNetworkType(tm),
-                    carrierId = getCarrierId(tm),
-                    isRoaming = safeBoolean { tm?.isNetworkRoaming }
+                    networkOperator = getNetworkOperator(context, tm, hasReadPerm),
+                    networkOperatorName = getNetworkOperatorName(context, tm, hasReadPerm),
+                    networkCountryIso = getNetworkCountryIso(context, tm, hasReadPerm),
+                    networkGeneration = getNetworkGeneration(context, tm, hasReadPerm),
+                    dataNetworkType = getDataNetworkType(context, tm, hasReadPerm),
+                    voiceNetworkType = getVoiceNetworkType(context, tm, hasReadPerm),
+                    carrierId = getCarrierId(context, tm, hasReadPerm),
+                    isRoaming = getIsRoaming(context, tm, hasReadPerm)
                 ),
                 sim = SubscriptionSimInfo(
-                    simOperator = safeString { tm?.simOperator },
-                    simOperatorName = safeString { tm?.simOperatorName },
-                    simCountryIso = safeString { tm?.simCountryIso },
-                    isDataEnabled = getIsDataEnabled(tm)
+                    simOperator = getSimOperator(context, tm, hasReadPerm),
+                    simOperatorName = getSimOperatorName(context, tm, hasReadPerm),
+                    simCountryIso = getSimCountryIso(context, tm, hasReadPerm),
+                    isDataEnabled = getIsDataEnabled(context, tm, hasReadPerm)
                 )
             )
         }
@@ -234,7 +246,9 @@ internal object NetworkInfoCollector {
         // Fallback: try SubscriptionManager active list (may be empty without permission on some OEMs).
         return try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) return null
+            if (!hasTelephonyReadPermission(context)) return null
             val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager ?: return null
+            @Suppress("MissingPermission") // Guarded by hasTelephonyReadPermission(context) above.
             val list = sm.activeSubscriptionInfoList
             list != null && list.isNotEmpty()
         } catch (_: SecurityException) {
@@ -269,10 +283,15 @@ internal object NetworkInfoCollector {
         }
 
         val activeSubIds = try {
+            if (!hasTelephonyReadPermission(context)) {
+                null
+            } else {
             val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-            sm?.activeSubscriptionInfoList
-                ?.mapNotNull { it?.subscriptionId }
-                ?.distinct()
+                @Suppress("MissingPermission") // Guarded by hasTelephonyReadPermission(context) above.
+                sm?.activeSubscriptionInfoList
+                    ?.mapNotNull { it?.subscriptionId }
+                    ?.distinct()
+            }
         } catch (e: SecurityException) {
             SdkLogger.d(TAG, "activeSubscriptionInfoList blocked: ${e.javaClass.name}: ${e.message}")
             null
@@ -412,49 +431,41 @@ internal object NetworkInfoCollector {
     }
     
     private fun getNetworkGeneration(telephonyManager: TelephonyManager?): String? {
-        if (telephonyManager == null) return null
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                when (telephonyManager.dataNetworkType) {
-                    TelephonyManager.NETWORK_TYPE_GPRS, TelephonyManager.NETWORK_TYPE_EDGE -> "2G"
-                    TelephonyManager.NETWORK_TYPE_UMTS, TelephonyManager.NETWORK_TYPE_CDMA,
-                    TelephonyManager.NETWORK_TYPE_EVDO_0, TelephonyManager.NETWORK_TYPE_EVDO_A,
-                    TelephonyManager.NETWORK_TYPE_EVDO_B, TelephonyManager.NETWORK_TYPE_1xRTT,
-                    TelephonyManager.NETWORK_TYPE_HSDPA, TelephonyManager.NETWORK_TYPE_HSUPA,
-                    TelephonyManager.NETWORK_TYPE_HSPA, TelephonyManager.NETWORK_TYPE_IDEN,
-                    TelephonyManager.NETWORK_TYPE_EHRPD, TelephonyManager.NETWORK_TYPE_HSPAP -> "3G"
-                    TelephonyManager.NETWORK_TYPE_LTE -> "4G"
-                    TelephonyManager.NETWORK_TYPE_NR -> "5G"
-                    else -> null
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                when (telephonyManager.networkType) {
-                    TelephonyManager.NETWORK_TYPE_GPRS, TelephonyManager.NETWORK_TYPE_EDGE -> "2G"
-                    TelephonyManager.NETWORK_TYPE_UMTS, TelephonyManager.NETWORK_TYPE_CDMA,
-                    TelephonyManager.NETWORK_TYPE_EVDO_0, TelephonyManager.NETWORK_TYPE_EVDO_A,
-                    TelephonyManager.NETWORK_TYPE_EVDO_B, TelephonyManager.NETWORK_TYPE_1xRTT,
-                    TelephonyManager.NETWORK_TYPE_HSDPA, TelephonyManager.NETWORK_TYPE_HSUPA,
-                    TelephonyManager.NETWORK_TYPE_HSPA, TelephonyManager.NETWORK_TYPE_IDEN,
-                    TelephonyManager.NETWORK_TYPE_EHRPD, TelephonyManager.NETWORK_TYPE_HSPAP -> "3G"
-                    TelephonyManager.NETWORK_TYPE_LTE -> "4G"
-                    else -> null
-                }
-            }
-        } catch (e: Exception) {
-            null
+        // Deprecated: prefer getNetworkGeneration(context, telephonyManager, hasPermission)
+        return null
+    }
+    
+    private fun getNetworkGeneration(context: Context, telephonyManager: TelephonyManager?, hasTelephonyPermission: Boolean): String? {
+        val type = getDataNetworkType(context, telephonyManager, hasTelephonyPermission) ?: return null
+        return when (type) {
+            TelephonyManager.NETWORK_TYPE_GPRS, TelephonyManager.NETWORK_TYPE_EDGE -> "2G"
+            TelephonyManager.NETWORK_TYPE_UMTS, TelephonyManager.NETWORK_TYPE_CDMA,
+            TelephonyManager.NETWORK_TYPE_EVDO_0, TelephonyManager.NETWORK_TYPE_EVDO_A,
+            TelephonyManager.NETWORK_TYPE_EVDO_B, TelephonyManager.NETWORK_TYPE_1xRTT,
+            TelephonyManager.NETWORK_TYPE_HSDPA, TelephonyManager.NETWORK_TYPE_HSUPA,
+            TelephonyManager.NETWORK_TYPE_HSPA, TelephonyManager.NETWORK_TYPE_IDEN,
+            TelephonyManager.NETWORK_TYPE_EHRPD, TelephonyManager.NETWORK_TYPE_HSPAP -> "3G"
+            TelephonyManager.NETWORK_TYPE_LTE -> "4G"
+            TelephonyManager.NETWORK_TYPE_NR -> "5G"
+            else -> null
         }
     }
     
-    private fun getIsDataEnabled(telephonyManager: TelephonyManager?): Boolean? {
+    private fun getIsDataEnabled(context: Context, telephonyManager: TelephonyManager?, hasTelephonyPermission: Boolean): Boolean? {
+        if (!hasTelephonyPermission) return null
         if (telephonyManager == null) return null
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
                 telephonyManager.isDataEnabled
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        } catch (_: Exception) {
             null
         }
     }
@@ -462,13 +473,13 @@ internal object NetworkInfoCollector {
     private fun getSimSlotCount(context: Context): Int? {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE)
+                val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
                 if (subscriptionManager != null) {
-                    // Use reflection to avoid dependency
                     try {
-                        val getActiveSubscriptionInfoCountMethod = subscriptionManager.javaClass.getMethod("getActiveSubscriptionInfoCount")
-                        val count = getActiveSubscriptionInfoCountMethod.invoke(subscriptionManager) as? Int
-                        count?.takeIf { it > 0 }
+                        if (!hasTelephonyReadPermission(context)) return null
+                        @Suppress("MissingPermission") // Guarded by hasTelephonyReadPermission(context) above.
+                        val count = subscriptionManager.activeSubscriptionInfoCount
+                        count.takeIf { it > 0 }
                     } catch (e: Exception) {
                         null
                     }
@@ -494,28 +505,16 @@ internal object NetworkInfoCollector {
                 if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
                     val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
                     telephonyManager?.let { tm ->
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            when (tm.dataNetworkType) {
-                                TelephonyManager.NETWORK_TYPE_LTE -> "LTE"
-                                TelephonyManager.NETWORK_TYPE_NR -> "NR"
-                                TelephonyManager.NETWORK_TYPE_HSPA -> "HSPA"
-                                TelephonyManager.NETWORK_TYPE_HSPAP -> "HSPAP"
-                                TelephonyManager.NETWORK_TYPE_UMTS -> "UMTS"
-                                TelephonyManager.NETWORK_TYPE_EDGE -> "EDGE"
-                                TelephonyManager.NETWORK_TYPE_GPRS -> "GPRS"
-                                else -> null
-                            }
-                        } else {
-                            @Suppress("DEPRECATION")
-                            when (tm.networkType) {
-                                TelephonyManager.NETWORK_TYPE_LTE -> "LTE"
-                                TelephonyManager.NETWORK_TYPE_HSPA -> "HSPA"
-                                TelephonyManager.NETWORK_TYPE_HSPAP -> "HSPAP"
-                                TelephonyManager.NETWORK_TYPE_UMTS -> "UMTS"
-                                TelephonyManager.NETWORK_TYPE_EDGE -> "EDGE"
-                                TelephonyManager.NETWORK_TYPE_GPRS -> "GPRS"
-                                else -> null
-                            }
+                        val type = getDataNetworkType(context, tm, hasTelephonyReadPermission(context)) ?: return@let null
+                        when (type) {
+                            TelephonyManager.NETWORK_TYPE_LTE -> "LTE"
+                            TelephonyManager.NETWORK_TYPE_NR -> "NR"
+                            TelephonyManager.NETWORK_TYPE_HSPA -> "HSPA"
+                            TelephonyManager.NETWORK_TYPE_HSPAP -> "HSPAP"
+                            TelephonyManager.NETWORK_TYPE_UMTS -> "UMTS"
+                            TelephonyManager.NETWORK_TYPE_EDGE -> "EDGE"
+                            TelephonyManager.NETWORK_TYPE_GPRS -> "GPRS"
+                            else -> null
                         }
                     }
                 } else {
@@ -544,45 +543,61 @@ internal object NetworkInfoCollector {
         }
     }
     
-    private fun getDataNetworkType(telephonyManager: TelephonyManager?): Int? {
+    private fun getDataNetworkType(context: Context, telephonyManager: TelephonyManager?, hasTelephonyPermission: Boolean): Int? {
+        if (!hasTelephonyPermission) return null
         if (telephonyManager == null) return null
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
                 telephonyManager.dataNetworkType
             } else {
-                @Suppress("DEPRECATION")
+                @Suppress("DEPRECATION", "MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
                 telephonyManager.networkType
             }
-        } catch (e: Exception) {
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        } catch (_: Exception) {
             null
         }
     }
 
-    private fun getVoiceNetworkType(telephonyManager: TelephonyManager?): Int? {
+    private fun getVoiceNetworkType(context: Context, telephonyManager: TelephonyManager?, hasTelephonyPermission: Boolean): Int? {
+        if (!hasTelephonyPermission) return null
         if (telephonyManager == null) return null
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
                 telephonyManager.voiceNetworkType
             } else {
-                @Suppress("DEPRECATION")
+                @Suppress("DEPRECATION", "MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
                 telephonyManager.networkType
             }
         } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
             null
         } catch (_: Exception) {
             null
         }
     }
     
-    private fun getCarrierId(telephonyManager: TelephonyManager?): Int? {
+    private fun getCarrierId(context: Context, telephonyManager: TelephonyManager?, hasTelephonyPermission: Boolean): Int? {
+        if (!hasTelephonyPermission) return null
         if (telephonyManager == null) return null
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
                 telephonyManager.simCarrierId
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        } catch (_: Exception) {
             null
         }
     }
@@ -625,6 +640,116 @@ internal object NetworkInfoCollector {
                 System.getProperty("http.proxyPort")?.toIntOrNull()?.takeIf { it > 0 }
             }
         } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun hasTelephonyReadPermission(context: Context): Boolean {
+        // READ_BASIC_PHONE_STATE exists on Android 13+; using it when available allows collecting
+        // basic telephony fields without requiring the broader READ_PHONE_STATE grant.
+        val hasReadPhoneState =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+        val hasReadBasicPhoneState =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_BASIC_PHONE_STATE) == PackageManager.PERMISSION_GRANTED
+            } else {
+                false
+            }
+        return hasReadPhoneState || hasReadBasicPhoneState
+    }
+
+    private fun getNetworkOperator(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): String? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.networkOperator
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun getNetworkOperatorName(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): String? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.networkOperatorName
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun getNetworkCountryIso(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): String? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.networkCountryIso
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun getSimOperator(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): String? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.simOperator
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun getSimOperatorName(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): String? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.simOperatorName
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun getSimCountryIso(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): String? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.simCountryIso
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun getIsRoaming(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): Boolean? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.isNetworkRoaming
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
+    private fun getCallState(context: Context, tm: TelephonyManager?, hasTelephonyPermission: Boolean): Int? {
+        if (!hasTelephonyPermission) return null
+        return try {
+            @Suppress("MissingPermission") // Guarded by hasTelephonyPermission and try/catch.
+            tm?.callState
+        } catch (_: SecurityException) {
+            null
+        } catch (_: RuntimeException) {
             null
         }
     }

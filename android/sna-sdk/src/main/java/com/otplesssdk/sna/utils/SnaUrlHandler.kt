@@ -148,8 +148,7 @@ internal object SnaUrlHandler {
     suspend fun execute(
         context: Context,
         urlString: String,
-        timeoutSeconds: Long,
-        allowedDomains: List<String>?
+        timeoutSeconds: Long
     ): SnaResult = withContext(Dispatchers.IO) {
         val startMs = SystemClock.elapsedRealtime()
         var cellularAcquireMs: Long? = null
@@ -177,13 +176,12 @@ internal object SnaUrlHandler {
                 bindMutex.withLock {
                     SdkLogger.d(
                         TAG,
-                        "Starting SNA call url=${redactUrl(httpUrl.toString())} timeoutSeconds=$timeoutSeconds allowedDomains=${allowedDomains?.size ?: 0}"
+                        "Starting SNA call url=${redactUrl(httpUrl.toString())} timeoutSeconds=$timeoutSeconds"
                     )
                     executeWithOptionalCellularBinding(
                         context = context,
                         httpUrlString = httpUrl.toString(),
                         timeoutSeconds = timeoutSeconds,
-                        allowedDomains = allowedDomains,
                         tracer = tracer,
                         timingsNow = ::timingsNow,
                         onCellularAcquireMs = { cellularAcquireMs = it },
@@ -218,16 +216,11 @@ internal object SnaUrlHandler {
         context: Context,
         httpUrlString: String,
         timeoutSeconds: Long,
-        allowedDomains: List<String>?,
         tracer: SnaRedirectTracer,
         timingsNow: () -> SnaTimings,
         onCellularAcquireMs: (Long) -> Unit,
         onProcessBindMs: (Long) -> Unit
     ): SnaResult {
-        if (allowedDomains != null && allowedDomains.isNotEmpty()) {
-            SdkLogger.w(TAG, "allowedDomains provided but not enforced when using OkHttp automatic redirects")
-        }
-
         val client = OkHttpClient.Builder()
             .followRedirects(true)
             .followSslRedirects(true)

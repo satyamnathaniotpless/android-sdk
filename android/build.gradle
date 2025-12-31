@@ -1,4 +1,7 @@
-// Root build.gradle for SNA SDK project
+// Root build.gradle for the Android multi-module project.
+//
+// Centralize plugin classpaths and repositories here so module build.gradle files
+// don't have to duplicate them (avoids version drift across modules).
 plugins {
     id "com.android.application" version "8.13.2" apply false
     id "com.android.library" version "8.13.2" apply false

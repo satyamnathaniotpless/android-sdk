@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.otplesssdk.sna.SNASdk
 import com.otplesssdk.sna.callback.SnaCallback
 import com.otplesssdk.sna.models.SnaResult
@@ -21,6 +22,9 @@ import com.otplesssdk.otp.models.OtpResult
 import com.otplesssdk.otp.models.OtpChannel
 import com.otplesssdk.utils.deviceinfo.DeviceInfoCollector
 import com.google.android.gms.ads.identifier.AdvertisingIdClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
@@ -249,36 +253,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun printDeviceInfoJson() {
-        Thread {
+        lifecycleScope.launch {
             try {
-                val inner = DeviceInfoCollector.getDeviceInfoJson(
-                    context = applicationContext,
-                    sdkVersion = "testapp",
-                    sdkName = "sna-sdk-testapp"
-                )
+                val result = withContext(Dispatchers.IO) {
+                    val inner = DeviceInfoCollector.getDeviceInfoJson(
+                        context = applicationContext,
+                        sdkVersion = "testapp",
+                        sdkName = "sna-sdk-testapp"
+                    )
 
-                val wrapped = "{\"device_info\":{${inner}}}"
-                val pretty = try {
-                    JSONObject(wrapped).toString(2)
-                } catch (_: Exception) {
-                    // If JSON parsing fails for any reason, still show the raw string.
-                    wrapped
+                    val wrapped = "{\"device_info\":{${inner}}}"
+                    val pretty = try {
+                        JSONObject(wrapped).toString(2)
+                    } catch (_: Exception) {
+                        // If JSON parsing fails for any reason, still show the raw string.
+                        wrapped
+                    }
+
+                    Pair(pretty, wrapped)
                 }
 
-                runOnUiThread {
-                    appendResult("🧾 Device Info JSON (pretty):\n$pretty\n\n")
-                    appendResult("✅ Logged to Logcat with tag: $DEVICE_INFO_LOG_TAG\n\n")
-                }
+                appendResult("🧾 Device Info JSON (pretty):\n${result.first}\n\n")
+                appendResult("✅ Logged to Logcat with tag: $DEVICE_INFO_LOG_TAG\n\n")
 
                 // Also log raw JSON (chunked to avoid Logcat truncation).
-                logLong(DEVICE_INFO_LOG_TAG, wrapped)
-            } catch (e: Exception) {
-                runOnUiThread {
-                    appendResult("❌ Failed to collect device info: ${e.message}\n\n")
+                withContext(Dispatchers.IO) {
+                    logLong(DEVICE_INFO_LOG_TAG, result.second)
                 }
+            } catch (e: Exception) {
+                appendResult("❌ Failed to collect device info: ${e.message}\n\n")
                 Log.e(DEVICE_INFO_LOG_TAG, "Failed to collect device info JSON", e)
             }
-        }.start()
+        }
     }
 
     private fun logLong(tag: String, message: String) {
@@ -298,16 +304,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun debugGaid() {
-        Thread {
+        lifecycleScope.launch {
             try {
-                val info = AdvertisingIdClient.getAdvertisingIdInfo(applicationContext)
-                val id = info.id
-                val isLimited = info.isLimitAdTrackingEnabled
+                val (id, isLimited) = withContext(Dispatchers.IO) {
+                    val info = AdvertisingIdClient.getAdvertisingIdInfo(applicationContext)
+                    info.id to info.isLimitAdTrackingEnabled
+                }
+                // If you ever need to touch UI here, switch to Dispatchers.Main.
                 Log.i("GaidDebug", "AdvertisingIdClient: id=$id, isLimitAdTrackingEnabled=$isLimited")
             } catch (t: Throwable) {
                 Log.e("GaidDebug", "AdvertisingIdClient failed: ${t.javaClass.name}: ${t.message}", t)
             }
-        }.start()
+        }
     }
 
     private fun testSnaUrl() {
@@ -328,7 +336,6 @@ class MainActivity : AppCompatActivity() {
         sdk.authenticate(
             url = url,
             timeoutSeconds = 5,
-            allowedDomains = null,
             callback = object : SnaCallback {
                 override fun onResult(result: SnaResult) {
                     when (result) {
@@ -454,8 +461,9 @@ class MainActivity : AppCompatActivity() {
     private fun appendResult(text: String) {
         resultText.append(text)
         // Auto-scroll to bottom
-        (resultText.parent as? ScrollView)?.post {
-            (resultText.parent as ScrollView).fullScroll(android.view.View.FOCUS_DOWN)
+        val sv = resultText.parent as? ScrollView
+        sv?.post {
+            sv.fullScroll(android.view.View.FOCUS_DOWN)
         }
     }
 }

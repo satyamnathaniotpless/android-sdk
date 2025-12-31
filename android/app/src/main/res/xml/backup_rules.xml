@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Backup rules to prevent sensitive SDK/app data from being included in Auto Backup / device-to-device transfer.
+
+  Notes:
+  - The paths below are relative to their respective domains:
+    - sharedpref -> /data/data/<package>/shared_prefs/
+    - database   -> /data/data/<package>/databases/
+    - file       -> /data/data/<package>/files/
+-->
+<full-backup-content>
+    <!-- Common sensitive storage locations (tokens, identifiers, session state, etc.). -->
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="database" path="." />
+
+    <!-- Typical SDK/app sensitive file locations. Adjust/add to match your app's actual on-disk layout. -->
+    <exclude domain="file" path="no_backup" />
+    <exclude domain="file" path="sna" />
+    <exclude domain="file" path="sna-sdk" />
+    <exclude domain="file" path="sna_sdk" />
+    <exclude domain="file" path="otp" />
+    <exclude domain="file" path="otp-sdk" />
+</full-backup-content>

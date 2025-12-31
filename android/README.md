@@ -108,7 +108,6 @@ val sdk = SNASdk.getInstance() ?: return
 sdk.authenticate(
     url = "http://partnerapi.jio.com/v2/adv/smv?...",
     timeoutSeconds = 30,
-    allowedDomains = null, // optional; currently not enforced with automatic redirects
     callback = object : SnaCallback {
         override fun onResult(result: SnaResult) {
             when (result) {
@@ -184,7 +183,6 @@ Implications:
 - `isMobileDataEnabled(): Boolean`
 - `authenticate(url, callback)`
 - `authenticate(url, timeoutSeconds, callback)`
-- `authenticate(url, timeoutSeconds, allowedDomains, callback)`
 
 ### Models
 

@@ -1,5 +1,6 @@
 package com.otplesssdk.otp.utils
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.google.android.gms.auth.api.phone.SmsRetriever
@@ -255,11 +256,15 @@ internal object OtpDispatcher {
     }
 
     fun handleWhatsAppErrorIntent(context: Context, intent: Intent) {
+        handleWhatsAppErrorIntent(context, intent, pendingIntent = null)
+    }
+
+    fun handleWhatsAppErrorIntent(context: Context, intent: Intent, pendingIntent: PendingIntent?) {
         if (intent.action != WhatsAppOtpHelper.ACTION_OTP_ERROR) {
             return
         }
-        val pendingIntent = PendingIntentReader.getPendingIntent(intent)
-        val creatorPackage = pendingIntent?.creatorPackage
+        val resolvedPendingIntent = pendingIntent ?: PendingIntentReader.getPendingIntent(intent)
+        val creatorPackage = resolvedPendingIntent?.creatorPackage
         if (!WhatsAppOtpHelper.isValidCreatorPackage(creatorPackage)) {
             SdkLogger.w(TAG, "Ignored WhatsApp error broadcast from $creatorPackage")
             return

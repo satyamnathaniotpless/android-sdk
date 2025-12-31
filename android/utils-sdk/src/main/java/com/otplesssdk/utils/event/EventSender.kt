@@ -6,13 +6,16 @@ import com.otplesssdk.utils.deviceinfo.DeviceInfoCollector
 import com.otplesssdk.utils.ids.SessionIdManager
 import com.otplesssdk.utils.logger.SdkLogger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -23,6 +26,12 @@ object EventSender {
     private const val TAG = "EventSender"
     private const val DEFAULT_TIMEOUT_SECONDS = 10L
     private const val JSON_MEDIA_TYPE = "application/json; charset=utf-8"
+    
+    // Scope used for fire-and-forget event sending.
+    // Must be safe to use even before EventSender.initialize().
+    private val eventJob = SupervisorJob()
+    private val eventScope = SdkCoroutineScope.createIOScope(parentJob = eventJob)
+    private val isShutdown = AtomicBoolean(false)
     
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -36,6 +45,44 @@ object EventSender {
     // Context for device info collection (set by SDKs during initialization)
     @Volatile
     private var appContext: Context? = null
+    
+    /**
+     * @return true if [initialize] has been called with a valid application context.
+     */
+    @JvmStatic
+    fun isInitialized(): Boolean = appContext != null
+
+    /**
+     * Prevents any new event submissions and begins a graceful shutdown.
+     *
+     * In-flight event work is allowed to finish. If you need to wait until all in-flight
+     * work finishes, call [shutdownAndWait].
+     *
+     * Most apps should not need to call this. Use only when you want to explicitly stop
+     * background work (e.g., during teardown in tests).
+     */
+    @JvmStatic
+    fun shutdown() {
+        // Set the state first so concurrent sendEvent() calls can observe shutdown immediately.
+        if (!isShutdown.compareAndSet(false, true)) {
+            return
+        }
+        // Stop accepting new work without abruptly cancelling in-flight tasks.
+        eventJob.complete()
+    }
+
+    /**
+     * Triggers shutdown (if not already started) and waits for in-flight work to finish.
+     *
+     * This is a blocking call; avoid calling it from the main thread.
+     */
+    @JvmStatic
+    fun shutdownAndWait() {
+        shutdown()
+        runBlocking {
+            eventJob.join()
+        }
+    }
     
     // SDK information (set during initialization or globally)
     @Volatile
@@ -251,8 +298,16 @@ object EventSender {
         state: String? = null,
         userId: String? = null
     ) {
-        val scope = SdkCoroutineScope.createIOScope()
-        scope.launch {
+        if (isShutdown.get() || !eventJob.isActive) {
+            SdkLogger.w(
+                TAG,
+                "sendEvent() called after shutdown; dropping event: $eventName"
+            )
+            return
+        }
+        eventScope.launch {
+            // Re-check before starting work to avoid races with shutdown/cancellation.
+            if (isShutdown.get() || !eventJob.isActive) return@launch
             val event = EventData(
                 sdkName = sdkName ?: "unknown",
                 eventName = eventName,
@@ -315,15 +370,19 @@ object EventSender {
                 }
                 
                 val request = requestBuilder.build()
-                val response = httpClient.newCall(request).execute()
-                
-                if (response.isSuccessful) {
-                    SdkLogger.d(TAG, "Event sent successfully: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId})")
-                } else {
-                    SdkLogger.w(TAG, "Event send failed with status ${response.code}: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId})")
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        SdkLogger.d(
+                            TAG,
+                            "Event sent successfully: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId})"
+                        )
+                    } else {
+                        SdkLogger.w(
+                            TAG,
+                            "Event send failed with status ${response.code}: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId})"
+                        )
+                    }
                 }
-                
-                response.close()
             } catch (e: Exception) {
                 SdkLogger.e(TAG, "Failed to send event: ${event.eventName}", e)
             }
@@ -335,8 +394,12 @@ object EventSender {
         json.append("{")
         json.append("\"sdk_name\":").append(escapeJson(event.sdkName)).append(",")
         json.append("\"event_name\":").append(escapeJson(event.eventName)).append(",")
-        json.append("\"timestamp\":").append(event.timestamp).append(",")
-        json.append("\"event_id\":").append(event.eventId)
+        json.append("\"timestamp\":").append(event.timestamp)
+
+        // Only include when set. EventSender assigns eventId during enhanceEventData().
+        event.eventId?.let { id ->
+            json.append(",\"event_id\":").append(id)
+        }
         
         if (event.deviceId != null) {
             json.append(",\"device_id\":").append(escapeJson(event.deviceId))
@@ -447,7 +510,13 @@ object EventSender {
         return when (value) {
             null -> "null"
             is Boolean -> value.toString()
-            is Number -> value.toString()
+            is Number -> when (value) {
+                // Only Float/Double can produce non-finite values like NaN/Infinity which are invalid JSON numbers.
+                // For those, emit the JSON literal null; leave all other Number types unchanged.
+                is Double -> if (!value.isNaN() && !value.isInfinite()) value.toString() else "null"
+                is Float -> if (!value.isNaN() && !value.isInfinite()) value.toString() else "null"
+                else -> value.toString()
+            }
             is String -> escapeJson(value)
             is Map<*, *> -> mapToJson(value)
             is Iterable<*> -> listToJson(value)

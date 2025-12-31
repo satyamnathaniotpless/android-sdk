@@ -43,19 +43,20 @@ internal class SnaRedirectTracer : EventListener() {
         }
     }
 
-    private fun ensureCurrentHop(startNs: Long): HopBuilder {
-        synchronized(lock) {
-            val current = hops.lastOrNull { it.endNs == null }
-            if (current != null) return current
-            return HopBuilder(url = "", startNs = startNs).also { hops.add(it) }
-        }
+    // NOTE: All hop list/field mutations must happen under `lock` to avoid races between OkHttp callbacks.
+    private fun ensureCurrentHopLocked(startNs: Long): HopBuilder {
+        val current = hops.lastOrNull { it.endNs == null }
+        if (current != null) return current
+        return HopBuilder(url = "", startNs = startNs).also { hops.add(it) }
     }
 
-    private fun currentHopOrNull(): HopBuilder? {
-        synchronized(lock) {
-            return hops.lastOrNull { it.endNs == null }
-        }
-    }
+    private fun currentHopOrNullLocked(): HopBuilder? = hops.lastOrNull { it.endNs == null }
+
+    private fun ensureCurrentHop(startNs: Long): HopBuilder =
+        synchronized(lock) { ensureCurrentHopLocked(startNs) }
+
+    private fun currentHopOrNull(): HopBuilder? =
+        synchronized(lock) { currentHopOrNullLocked() }
 
     override fun requestHeadersStart(call: Call) {
         val now = System.nanoTime()
@@ -65,22 +66,29 @@ internal class SnaRedirectTracer : EventListener() {
 
     override fun dnsStart(call: Call, domainName: String) {
         val now = System.nanoTime()
-        val hop = ensureCurrentHop(now)
-        if (hop.url.isBlank()) hop.url = domainName
-        hop.dnsStartNs = now
+        synchronized(lock) {
+            val hop = ensureCurrentHopLocked(now)
+            if (hop.url.isBlank()) hop.url = domainName
+            hop.dnsStartNs = now
+        }
     }
 
     override fun dnsEnd(call: Call, domainName: String, inetAddressList: List<InetAddress>) {
-        val hop = currentHopOrNull() ?: return
-        val start = hop.dnsStartNs ?: return
-        hop.dnsNs = System.nanoTime() - start
+        val now = System.nanoTime()
+        synchronized(lock) {
+            val hop = currentHopOrNullLocked() ?: return
+            val start = hop.dnsStartNs ?: return
+            hop.dnsNs = now - start
+        }
     }
 
     override fun connectStart(call: Call, inetSocketAddress: InetSocketAddress, proxy: Proxy) {
         val now = System.nanoTime()
-        val hop = ensureCurrentHop(now)
-        if (hop.url.isBlank()) hop.url = inetSocketAddress.hostString
-        hop.connectStartNs = now
+        synchronized(lock) {
+            val hop = ensureCurrentHopLocked(now)
+            if (hop.url.isBlank()) hop.url = inetSocketAddress.hostString
+            hop.connectStartNs = now
+        }
     }
 
     override fun connectEnd(
@@ -89,32 +97,50 @@ internal class SnaRedirectTracer : EventListener() {
         proxy: Proxy,
         protocol: okhttp3.Protocol?
     ) {
-        val hop = currentHopOrNull() ?: return
-        val start = hop.connectStartNs ?: return
-        hop.connectNs = System.nanoTime() - start
+        val now = System.nanoTime()
+        synchronized(lock) {
+            val hop = currentHopOrNullLocked() ?: return
+            val start = hop.connectStartNs ?: return
+            hop.connectNs = now - start
+        }
     }
 
     override fun secureConnectStart(call: Call) {
         val now = System.nanoTime()
-        ensureCurrentHop(now).tlsStartNs = now
+        synchronized(lock) {
+            ensureCurrentHopLocked(now).tlsStartNs = now
+        }
     }
 
     override fun secureConnectEnd(call: Call, handshake: okhttp3.Handshake?) {
-        val hop = currentHopOrNull() ?: return
-        val start = hop.tlsStartNs ?: return
-        hop.tlsNs = System.nanoTime() - start
+        val hop = synchronized(lock) { currentHopOrNullLocked() } ?: return
+        synchronized(hop) {
+            val start = hop.tlsStartNs ?: return
+            val now = System.nanoTime()
+            hop.tlsNs = now - start
+        }
     }
 
     override fun responseHeadersEnd(call: Call, response: Response) {
         val hop = currentHopOrNull() ?: return
-        hop.url = response.request.url.toString()
-        hop.httpCode = response.code
-        hop.endNs = System.nanoTime()
+        val url = response.request.url.toString()
+        val code = response.code
+        synchronized(lock) {
+            if (hop.endNs != null) return
+            val now = System.nanoTime()
+            hop.url = url
+            hop.httpCode = code
+            hop.endNs = now
+        }
     }
 
     override fun callFailed(call: Call, ioe: IOException) {
-        val hop = currentHopOrNull() ?: return
-        if (hop.url.isBlank()) hop.url = call.request().url.toString()
-        hop.endNs = System.nanoTime()
+        val now = System.nanoTime()
+        val url = call.request().url.toString()
+        synchronized(lock) {
+            val hop = hops.lastOrNull { it.endNs == null } ?: return
+            if (hop.url.isBlank()) hop.url = url
+            hop.endNs = now
+        }
     }
 }

@@ -1,29 +1,15 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
-    }
-}
-
-apply plugin: 'com.android.library'
-apply plugin: 'org.jetbrains.kotlin.android'
-
-repositories {
-    google()
-    mavenCentral()
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
-    namespace 'com.otplesssdk.otp'
-    compileSdk 34
+    namespace = 'com.otplesssdk.otp'
+    compileSdk = 34
 
     defaultConfig {
-        minSdk 21
-        targetSdk 34
+        minSdk = 21
+        targetSdk = 34
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -31,14 +17,15 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Library modules should not enforce shrinking/obfuscation;
+            // expose rules via consumerProguardFiles so app consumers control it.
+            minifyEnabled = false
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {

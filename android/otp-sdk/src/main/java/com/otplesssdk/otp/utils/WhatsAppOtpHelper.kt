@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import com.otplesssdk.otp.receiver.WhatsAppOtpCallbackReceiver
 
 internal object WhatsAppOtpHelper {
     const val PACKAGE_WHATSAPP = "com.whatsapp"
@@ -14,6 +15,9 @@ internal object WhatsAppOtpHelper {
     const val ACTION_OTP_REQUESTED = "com.whatsapp.otp.OTP_REQUESTED"
     const val ACTION_OTP_RETRIEVED = "com.whatsapp.otp.OTP_RETRIEVED"
     const val ACTION_OTP_ERROR = "com.whatsapp.otp.OTP_ERROR"
+
+    // Unique action for the PendingIntent target in the host app.
+    const val ACTION_WHATSAPP_OTP_CALLBACK = "com.otplesssdk.otp.WHATSAPP_OTP_CALLBACK"
 
     const val EXTRA_PENDING_INTENT = "_ci_"
     const val EXTRA_CODE = "code"
@@ -32,16 +36,24 @@ internal object WhatsAppOtpHelper {
             return false
         }
 
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            PendingIntent.FLAG_IMMUTABLE
-        } else {
-            0
+        // WhatsApp needs to be able to attach OTP extras to the callback intent,
+        // so the PendingIntent must be mutable on Android 12+.
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                PendingIntent.FLAG_MUTABLE
+            } else {
+                0
+            }
+
+        val callbackIntent = Intent(context, WhatsAppOtpCallbackReceiver::class.java).apply {
+            action = ACTION_WHATSAPP_OTP_CALLBACK
+            setPackage(context.packageName)
         }
 
-        val pendingIntent = PendingIntent.getActivity(
+        val pendingIntent = PendingIntent.getBroadcast(
             context,
-            0,
-            Intent(),
+            /* requestCode = */ 1001,
+            callbackIntent,
             flags
         )
 

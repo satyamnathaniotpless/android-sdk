@@ -272,26 +272,30 @@ internal object DeviceInfoJsonBuilder {
     fun escapeJson(value: String): String {
         val sb = StringBuilder(value.length + 10)
         sb.append('"')
-        for (i in value.indices) {
-            val ch = value[i]
-            when (ch) {
-                '\\' -> sb.append("\\\\")
-                '"' -> sb.append("\\\"")
-                '\n' -> sb.append("\\n")
-                '\r' -> sb.append("\\r")
-                '\t' -> sb.append("\\t")
-                '\b' -> sb.append("\\b")
-                '\u000C' -> sb.append("\\f") // Form feed
+        var i = 0
+        while (i < value.length) {
+            val codePoint = value.codePointAt(i)
+            val charCount = Character.charCount(codePoint)
+            when (codePoint) {
+                '\\'.code -> sb.append("\\\\")
+                '"'.code -> sb.append("\\\"")
+                '\n'.code -> sb.append("\\n")
+                '\r'.code -> sb.append("\\r")
+                '\t'.code -> sb.append("\\t")
+                '\b'.code -> sb.append("\\b")
+                0x000C -> sb.append("\\f") // Form feed
                 else -> {
-                    // Escape control characters (U+0000 to U+001F)
-                    if (ch < ' ') {
+                    // Escape control characters (U+0000 to U+001F) and any unpaired surrogate halves.
+                    if (codePoint < 0x20 || (codePoint in 0xD800..0xDFFF)) {
                         sb.append("\\u")
-                        sb.append(String.format("%04x", ch.code))
+                        sb.append(String.format("%04x", codePoint))
                     } else {
-                        sb.append(ch)
+                        // Append the full Unicode code point (including supplementary characters).
+                        sb.append(Character.toChars(codePoint))
                     }
                 }
             }
+            i += charCount
         }
         sb.append('"')
         return sb.toString()

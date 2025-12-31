@@ -1,16 +1,7 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
-    }
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
-
-apply plugin: 'com.android.application'
-apply plugin: 'org.jetbrains.kotlin.android'
 
 repositories {
     google()
@@ -18,26 +9,26 @@ repositories {
 }
 
 android {
-    namespace 'com.sna.sdk.testapp'
-    compileSdk 34
+    namespace = 'com.sna.sdk.testapp'
+    compileSdk = 34
 
     defaultConfig {
         applicationId "com.sna.sdk.testapp"
-        minSdk 21
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        minSdk = 21
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
         }
     }
     
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     
     kotlinOptions {
@@ -55,6 +46,8 @@ dependencies {
     
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.9.4'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
     implementation 'com.google.android.material:material:1.10.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 }

@@ -1,5 +1,7 @@
 package com.otplesssdk.otp.models
 
+import java.util.regex.PatternSyntaxException
+
 data class OtpConfig(
     val otpLength: Int = DEFAULT_OTP_LENGTH,
     val channels: Set<OtpChannel> = setOf(OtpChannel.SMS, OtpChannel.WHATSAPP),
@@ -18,7 +20,19 @@ data class OtpConfig(
         require(minOtpLength <= maxOtpLength) { "minOtpLength must be <= maxOtpLength" }
         for (pattern in otpRegexes) {
             require(pattern.isNotBlank()) { "otpRegexes must not contain blank patterns" }
-            Regex(pattern)
+            try {
+                Regex(pattern)
+            } catch (e: PatternSyntaxException) {
+                throw IllegalArgumentException(
+                    "Invalid regex pattern in otpRegexes: '$pattern'. ${e.message}",
+                    e
+                )
+            } catch (e: IllegalArgumentException) {
+                throw IllegalArgumentException(
+                    "Invalid regex pattern in otpRegexes: '$pattern'. ${e.message}",
+                    e
+                )
+            }
         }
         require(whatsAppTimeoutMs >= 0) { "whatsAppTimeoutMs must be >= 0" }
         require(storedResultMaxAgeMs >= 0) { "storedResultMaxAgeMs must be >= 0" }

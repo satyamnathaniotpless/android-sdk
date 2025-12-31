@@ -31,8 +31,13 @@ object DeviceInfoCollector {
      * This method never throws exceptions to ensure event sending is never blocked.
      *
      * Device info JSON is cached for 5 minutes (keyed by sdkName/sdkVersion) to avoid expensive re-collection.
+     *
+     * Permissions (best-effort; missing permissions never throw):
+     * - Optional (recommended for richer network fields): `android.permission.ACCESS_NETWORK_STATE` (normal)
+     * - Optional (recommended for richer telephony/subscription fields): `android.permission.READ_PHONE_STATE`
+     *   or `android.permission.READ_BASIC_PHONE_STATE` (Android 13+). If not granted (or not declared),
+     *   telephony/subscription fields will be omitted (null) and collection will continue.
      */
-    @Suppress("MissingPermission")
     private fun collectDeviceInfoJson(context: Context, sdkVersion: String? = null, sdkName: String? = null): String {
         // Check cache first
         val cached = DeviceInfoCache.getCachedJson(sdkVersion, sdkName)
@@ -104,6 +109,11 @@ object DeviceInfoCollector {
      * @return JSON string containing device information content (without outer braces).
      *         Returns empty string if collection fails. Can be embedded in another JSON object.
      *         To get a complete JSON object, wrap with: {"device_info":{...}}
+     *
+     * Permissions (all optional; data returned is best-effort):
+     * - `android.permission.ACCESS_NETWORK_STATE` (normal): improves network transport detection.
+     * - `android.permission.READ_PHONE_STATE` / `android.permission.READ_BASIC_PHONE_STATE` (Android 13+):
+     *   enables richer telephony/subscription fields. Without these, those fields will be null.
      */
     fun getDeviceInfoJson(
         context: Context,

@@ -1,6 +1,7 @@
 package com.otplesssdk.sna
 
 import android.content.Context
+import android.os.SystemClock
 import com.otplesssdk.sna.callback.SnaCallback
 import com.otplesssdk.sna.models.FailureReason
 import com.otplesssdk.sna.models.SimNetworkInfo
@@ -118,7 +119,7 @@ class SNASdk private constructor(private val context: Context) {
      */
     fun isMobileDataEnabled(): Boolean {
         SdkLogger.d("SNASdk", "isMobileDataEnabled() called")
-        val enabled = NetworkUtils.isMobileDataEnabled(context)
+        val enabled = NetworkUtils.isMobileDataAvailable(context)
         SdkLogger.d("SNASdk", "isMobileDataEnabled() result: $enabled")
         
         // Send event
@@ -140,7 +141,6 @@ class SNASdk private constructor(private val context: Context) {
         authenticate(
             url = url,
             timeoutSeconds = SnaConfig.DEFAULT_TIMEOUT_SECONDS,
-            allowedDomains = null,
             callback = callback
         )
     }
@@ -154,7 +154,6 @@ class SNASdk private constructor(private val context: Context) {
         authenticate(
             url = url,
             timeoutSeconds = timeoutSeconds,
-            allowedDomains = null,
             callback = callback
         )
     }
@@ -162,10 +161,9 @@ class SNASdk private constructor(private val context: Context) {
     fun authenticate(
         url: String,
         timeoutSeconds: Long = SnaConfig.DEFAULT_TIMEOUT_SECONDS,
-        allowedDomains: List<String>? = null,
         callback: SnaCallback
     ) {
-        SdkLogger.d("SNASdk", "authenticate(url, timeoutSeconds, allowedDomains, callback) called")
+        SdkLogger.d("SNASdk", "authenticate(url, timeoutSeconds, callback) called")
         
         // Redact URL for event (base URL only, no query params)
         val redactedUrl = redactUrl(url)
@@ -175,37 +173,51 @@ class SNASdk private constructor(private val context: Context) {
             eventName = "sna_authenticate_started",
             properties = mapOf(
                 "url" to redactedUrl,
-                "timeout_seconds" to timeoutSeconds,
-                "has_allowed_domains" to (allowedDomains != null && allowedDomains.isNotEmpty()),
-                "allowed_domains_count" to (allowedDomains?.size ?: 0)
+                "timeout_seconds" to timeoutSeconds
             )
         )
         
         scope.launch {
-            val result: SnaResult = SnaUrlHandler.execute(
-                context = context,
-                urlString = url,
-                timeoutSeconds = timeoutSeconds,
-                allowedDomains = allowedDomains
-            )
-            
-            // Send success or failure event based on result
-            when (result) {
-                is SnaResult.Success -> {
-                    EventSender.sendEvent(
-                        eventName = "sna_authenticate_success",
-                        properties = buildSuccessEventProperties(result, redactedUrl)
-                    )
+            val startMs = SystemClock.elapsedRealtime()
+            try {
+                val result: SnaResult = SnaUrlHandler.execute(
+                    context = context,
+                    urlString = url,
+                    timeoutSeconds = timeoutSeconds
+                )
+
+                // Send success or failure event based on result
+                when (result) {
+                    is SnaResult.Success -> {
+                        EventSender.sendEvent(
+                            eventName = "sna_authenticate_success",
+                            properties = buildSuccessEventProperties(result, redactedUrl)
+                        )
+                    }
+
+                    is SnaResult.Failure -> {
+                        EventSender.sendEvent(
+                            eventName = "sna_authenticate_failure",
+                            properties = buildFailureEventProperties(result, redactedUrl)
+                        )
+                    }
                 }
-                is SnaResult.Failure -> {
-                    EventSender.sendEvent(
-                        eventName = "sna_authenticate_failure",
-                        properties = buildFailureEventProperties(result, redactedUrl)
-                    )
-                }
+
+                callback.onResult(result)
+            } catch (e: Exception) {
+                val failure = SnaResult.Failure(
+                    reason = FailureReason.UNKNOWN_ERROR,
+                    detail = e.message ?: "Unknown error",
+                    timings = SnaTimings(totalMs = SystemClock.elapsedRealtime() - startMs)
+                )
+
+                EventSender.sendEvent(
+                    eventName = "sna_authenticate_failure",
+                    properties = buildFailureEventProperties(failure, redactedUrl)
+                )
+                SdkLogger.e("SNASdk", "authenticate() failed with exception", e)
+                callback.onResult(failure)
             }
-            
-            callback.onResult(result)
         }
     }
     

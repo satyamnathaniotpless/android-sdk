@@ -122,7 +122,8 @@ These are already included in the library manifest:
 
 <receiver
     android:name=".receiver.WhatsAppOtpReceiver"
-    android:exported="true">
+    android:exported="true"
+    android:permission="com.whatsapp.permission.BROADCAST">
     <intent-filter>
         <action android:name="com.whatsapp.otp.OTP_RETRIEVED" />
     </intent-filter>
@@ -130,7 +131,8 @@ These are already included in the library manifest:
 
 <receiver
     android:name=".receiver.WhatsAppOtpErrorReceiver"
-    android:exported="true">
+    android:exported="true"
+    android:permission="com.whatsapp.permission.BROADCAST">
     <intent-filter>
         <action android:name="com.whatsapp.otp.OTP_ERROR" />
     </intent-filter>

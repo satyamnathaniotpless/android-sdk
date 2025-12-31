@@ -20,9 +20,12 @@ data class EventData(
     val timestamp: Long = System.currentTimeMillis(),
     
     /**
-     * Auto-incrementing event ID for the current session (starts at 1)
+     * Event ID for the current session.
+     *
+     * Nullable to avoid silently defaulting to a value that could create duplicate IDs.
+     * `null` means "not set" (e.g., it will be assigned by the sender when dispatching the event).
      */
-    val eventId: Int = 1,
+    val eventId: Int? = null,
     
     /**
      * Persistent device ID (persists across app installs, based on GAID/device ID)

@@ -10,6 +10,7 @@ import com.otplesssdk.utils.logger.SdkLogger
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 
 internal object CellularNetworkBinder {
@@ -36,12 +37,12 @@ internal object CellularNetworkBinder {
 
         return withTimeoutOrNull(timeoutMs.toLong().coerceAtLeast(1)) {
             suspendCancellableCoroutine { continuation ->
-                var callbackRef: ConnectivityManager.NetworkCallback? = null
+                val callbackRef = AtomicReference<ConnectivityManager.NetworkCallback?>(null)
                 val resumed = AtomicBoolean(false)
 
                 fun release() {
-                    val cb = callbackRef ?: return
-                    callbackRef = null
+                    // Atomically clear the ref to avoid double-unregisters across threads.
+                    val cb = callbackRef.getAndSet(null) ?: return
                     try {
                         cm.unregisterNetworkCallback(cb)
                         SdkLogger.d(TAG, "Network callback unregistered (request released)")
@@ -71,7 +72,7 @@ internal object CellularNetworkBinder {
                     }
                 }
 
-                callbackRef = callback
+                callbackRef.set(callback)
 
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

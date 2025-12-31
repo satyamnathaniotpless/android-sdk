@@ -1,8 +1,12 @@
 package com.otplesssdk.otp.utils
 
 import com.otplesssdk.otp.models.OtpConfig
+import com.otplesssdk.utils.logger.SdkLogger
+import java.util.regex.PatternSyntaxException
 
 internal object OtpParser {
+    private const val TAG = "OtpParser"
+
     fun extractOtp(message: String, config: OtpConfig): String? {
         val trimmed = message.trim()
         if (trimmed.isEmpty()) {
@@ -44,7 +48,11 @@ internal object OtpParser {
         val patterns = mutableListOf<Regex>()
 
         for (pattern in config.otpRegexes) {
-            patterns.add(Regex(pattern))
+            try {
+                patterns.add(Regex(pattern))
+            } catch (exception: PatternSyntaxException) {
+                SdkLogger.w(TAG, "Invalid OTP regex pattern skipped: $pattern", exception)
+            }
         }
 
         val lengthPattern = if (lengthRange.first == lengthRange.last) {

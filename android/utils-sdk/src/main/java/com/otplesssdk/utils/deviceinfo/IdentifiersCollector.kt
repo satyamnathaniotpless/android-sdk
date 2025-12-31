@@ -9,6 +9,8 @@ import com.android.installreferrer.api.InstallReferrerStateListener
 import com.android.installreferrer.api.ReferrerDetails
 import com.otplesssdk.utils.coroutines.SdkCoroutineScope
 import com.otplesssdk.utils.logger.SdkLogger
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -40,7 +42,8 @@ internal object IdentifiersCollector {
      * Start collecting install referrer in the background (non-blocking).
      */
     fun startReferrerCollection(context: Context) {
-        val scope = SdkCoroutineScope.createIOScope()
+        val referrerJob = SupervisorJob()
+        val scope = SdkCoroutineScope.createIOScope(parentJob = referrerJob)
         scope.launch {
             try {
                 val referrerClient = InstallReferrerClient.newBuilder(context).build()
@@ -77,6 +80,8 @@ internal object IdentifiersCollector {
                                 referrerClient.endConnection()
                             } catch (_: Exception) {
                             }
+                            // End background collection scope once we have a terminal result.
+                            referrerJob.cancel()
                         }
                     }
 
@@ -86,11 +91,14 @@ internal object IdentifiersCollector {
                             referrerClient.endConnection()
                         } catch (_: Exception) {
                         }
+                        // End background collection scope once disconnected.
+                        referrerJob.cancel()
                     }
                 })
             } catch (e: Exception) {
                 SdkLogger.w(TAG, "Install Referrer not available: ${e.message}")
                 cachedReferrer = null
+                referrerJob.cancel()
             }
         }
     }
@@ -132,21 +140,27 @@ internal object IdentifiersCollector {
      * Returns null if MediaDrm is not available or if there's an error.
      */
     private fun getDrmId(): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) return null
+
+        // Use Widevine DRM (most common)
+        val widevineUuid = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
+        var mediaDrm: MediaDrm? = null
+
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                // Use Widevine DRM (most common)
-                val widevineUuid = UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed")
-                val mediaDrm = MediaDrm(widevineUuid)
-                val deviceIdBytes = mediaDrm.getPropertyByteArray(MediaDrm.PROPERTY_DEVICE_UNIQUE_ID)
-                mediaDrm.release()
-                // Convert bytes to hex string
-                deviceIdBytes?.joinToString("") { "%02x".format(it) }
-            } else {
-                null
-            }
+            mediaDrm = MediaDrm(widevineUuid)
+            val deviceIdBytes = mediaDrm.getPropertyByteArray(MediaDrm.PROPERTY_DEVICE_UNIQUE_ID)
+            // Convert bytes to hex string
+            deviceIdBytes?.joinToString("") { "%02x".format(it) }
         } catch (e: Exception) {
             // MediaDrm not available or error occurred
             null
+        } finally {
+            try {
+                mediaDrm?.release()
+            } catch (t: Throwable) {
+                // Never let release() failures crash identifier collection.
+                SdkLogger.d(TAG, "MediaDrm release failed: ${t.javaClass.name}: ${t.message}")
+            }
         }
     }
 }

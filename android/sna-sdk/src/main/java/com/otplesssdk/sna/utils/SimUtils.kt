@@ -103,7 +103,7 @@ internal object SimUtils {
 
         val networkName = readNetworkName(tmForSim)
         
-        val isMobileDataEnabled = NetworkUtils.isMobileDataEnabled(context)
+        val isMobileDataEnabled = NetworkUtils.isMobileDataAvailable(context)
         
         return SimNetworkInfo(
             mcc = mcc,

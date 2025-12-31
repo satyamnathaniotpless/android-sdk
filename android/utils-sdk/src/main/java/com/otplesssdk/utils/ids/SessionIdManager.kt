@@ -1,19 +1,22 @@
 package com.otplesssdk.utils.ids
 
 import android.content.Context
+import android.util.Base64
 import com.otplesssdk.utils.deviceinfo.HardwareInfoCollector
 import com.otplesssdk.utils.deviceinfo.IdentifiersCollector
+import com.otplesssdk.utils.logger.SdkLogger
 import java.security.MessageDigest
 import java.util.UUID
 
 /**
  * Utility for managing session ID and device ID.
  * Session ID persists until app restart.
- * Device ID persists across app installs (based on GAID/device ID).
+ * Device ID persistence notes: GAID can be reset by the user at any time; ANDROID_ID may change after reinstall on Android 8.0+ (API 26+), but remains stable across updates when the app is signed with the same key.
  */
 object SessionIdManager {
     private const val PREFS_NAME = "otpless_sdk_ids"
     private const val KEY_DEVICE_ID = "otpless_device_id"
+    private const val TAG = "SessionIdManager"
     
     // In-memory cache for session ID (faster access)
     @Volatile
@@ -53,15 +56,29 @@ object SessionIdManager {
     
     /**
      * Get or generate device ID.
-     * Device ID persists across app installs (based on GAID/device ID).
+     * Get or generate a device identifier derived from available identifiers and cached locally.
+     *
+     * Notes on persistence/availability:
+     * - GAID (Google Advertising ID) is retrieved via the Play Services Advertising ID API and
+     *   respects user settings (including opt-out/reset). It may be null/unavailable (for example if
+     *   Play Services is missing/restricted or the API cannot be accessed).
+     * - ANDROID_ID is not a guaranteed permanent identifier: it can change on factory reset, can
+     *   differ across per-user profiles on the same device, and may vary due to OEM/ROM behavior.
+     *   It is not guaranteed to be stable across reinstalls.
+     * - If no suitable identifier is available, this falls back to a randomly generated UUID.
+     *
+     * Privacy/consent:
+     * - Collecting/using GAID has privacy and consent requirements. Only use GAID if your app has a
+     *   lawful basis to process it, and obtain user consent where required by law and applicable
+     *   platform policies.
      * 
      * Generation priority:
      * 1. Try to get GAID (Google Advertising ID) - if available, hash it
-     * 2. If GAID is null, try to get device ID (ANDROID_ID) - if available, hash it
-     * 3. If both are null, generate a random UUID
+     * 2. If GAID is null/unavailable, try to get device ID (ANDROID_ID) - if available, hash it
+     * 3. If both are unavailable, generate a random UUID
      * 
-     * The GAID/device ID is hashed using SHA-256 to make it different from the actual value
-     * but always generate the same hash for the same input (deterministic).
+     * The GAID/ANDROID_ID is hashed using SHA-256 to avoid storing the raw value; the hash is
+     * deterministic for the same input (but the underlying identifiers may change as noted above).
      * 
      * @param context Application context
      * @return Device ID (never null)
@@ -91,10 +108,10 @@ object SessionIdManager {
                         }
                     }
                     
-                    // Use commit() for synchronous write to ensure consistency
+                    // Use apply() for non-blocking persistence to avoid blocking the calling thread
                     prefs.edit()
                         .putString(KEY_DEVICE_ID, deviceId)
-                        .commit()
+                        .apply()
                 }
             }
         }
@@ -116,8 +133,13 @@ object SessionIdManager {
             val digest = md.digest(identifier.toByteArray())
             digest.joinToString("") { "%02x".format(it) }
         } catch (e: Exception) {
-            // Fallback to UUID if hashing fails
-            UUID.randomUUID().toString()
+            // Deterministic fallback (no UUIDs): preserve determinism across invocations for same input.
+            // Use Base64 URL-safe encoding to avoid special characters and line breaks.
+            SdkLogger.e(TAG, "Failed to hash identifier; falling back to Base64URL encoding", e)
+            Base64.encodeToString(
+                identifier.toByteArray(Charsets.UTF_8),
+                Base64.NO_WRAP or Base64.URL_SAFE
+            )
         }
     }
     

@@ -8,7 +8,7 @@
 
     <application>
         <receiver
-            android:name=".receiver.SmsRetrieverReceiver"
+            android:name="com.otplesssdk.otp.receiver.SmsRetrieverReceiver"
             android:enabled="true"
             android:exported="true"
             android:permission="com.google.android.gms.auth.api.phone.permission.SEND">
@@ -18,22 +18,20 @@
         </receiver>
 
         <receiver
-            android:name=".receiver.WhatsAppOtpReceiver"
+            android:name="com.otplesssdk.otp.receiver.WhatsAppOtpReceiver"
             android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.whatsapp.otp.OTP_RETRIEVED" />
-            </intent-filter>
-        </receiver>
+            android:exported="false" />
 
         <receiver
-            android:name=".receiver.WhatsAppOtpErrorReceiver"
+            android:name="com.otplesssdk.otp.receiver.WhatsAppOtpErrorReceiver"
             android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.whatsapp.otp.OTP_ERROR" />
-            </intent-filter>
-        </receiver>
+            android:exported="false" />
+
+        <!-- Target for the PendingIntent passed to WhatsApp during handshake. -->
+        <receiver
+            android:name="com.otplesssdk.otp.receiver.WhatsAppOtpCallbackReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>

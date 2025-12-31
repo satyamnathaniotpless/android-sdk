@@ -128,8 +128,14 @@ internal object AppInfoCollector {
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val signingInfo = packageInfo.signingInfo
-                val certificates = signingInfo?.apkContentsSigners
-                certificates?.mapNotNull { cert ->
+                val signers = if (signingInfo == null) {
+                    null
+                } else if (signingInfo.hasMultipleSigners()) {
+                    signingInfo.apkContentsSigners
+                } else {
+                    signingInfo.signingCertificateHistory
+                }
+                signers?.mapNotNull { cert ->
                     try {
                         val md = MessageDigest.getInstance("SHA-256")
                         val digest = md.digest(cert.toByteArray())

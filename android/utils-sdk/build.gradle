@@ -1,16 +1,7 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
-    }
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
 }
-
-apply plugin: 'com.android.library'
-apply plugin: 'org.jetbrains.kotlin.android'
 
 repositories {
     google()
@@ -18,12 +9,12 @@ repositories {
 }
 
 android {
-    namespace 'com.otplesssdk.utils'
-    compileSdk 34
+    namespace = 'com.otplesssdk.utils'
+    compileSdk = 34
 
     defaultConfig {
-        minSdk 21
-        targetSdk 34
+        minSdk = 21
+        targetSdk = 34
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -31,18 +22,22 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Library modules should not enable minification/obfuscation.
+            // Keep rules in consumerProguardFiles so the consuming app controls shrinking.
+            minifyEnabled = false
         }
     }
     
+    // Keep lint permission checks enabled; permission-protected APIs must be guarded locally.
     lint {
-        disable += "MissingPermission"
+        // Work around a known lint crash ("Invalid offsets") seen in IndentationDetector
+        // when analyzing this module.
+        disable 'SuspiciousIndentation'
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
@@ -51,6 +46,9 @@ android {
 }
 
 dependencies {
+    // NOTE: Keep this version compatible with compileSdk=34.
+    implementation 'androidx.core:core-ktx:1.13.1'
+
     // Kotlin Coroutines for async operations
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 
