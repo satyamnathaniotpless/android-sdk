@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <!-- Allow cleartext (HTTP) traffic for Jio domains -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">partnerapi.jio.com</domain>
-    </domain-config>
-    
-    <!-- For other domains, use default (HTTPS only) -->
-</network-security-config>
