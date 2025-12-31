@@ -24,6 +24,13 @@
 **/.cxx/
 **/.externalNativeBuild/
 
+# Android artifacts
+*.apk
+*.aab
+*.aar
+captures/
+*.hprof
+
 # Logs
 *.log
 
