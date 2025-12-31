@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+    </queries>
+
+    <application>
+        <receiver
+            android:name="com.otplesssdk.otp.receiver.SmsRetrieverReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="com.google.android.gms.auth.api.phone.permission.SEND">
+            <intent-filter>
+                <action android:name="com.google.android.gms.auth.api.phone.SMS_RETRIEVED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.otplesssdk.otp.receiver.WhatsAppOtpReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name="com.otplesssdk.otp.receiver.WhatsAppOtpErrorReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Target for the PendingIntent passed to WhatsApp during handshake. -->
+        <receiver
+            android:name="com.otplesssdk.otp.receiver.WhatsAppOtpCallbackReceiver"
+            android:enabled="true"
+            android:exported="false" />
+    </application>
+
+</manifest>

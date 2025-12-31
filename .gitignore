@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Cursor / local tooling
+.cursor/
+.tmp/
+
+# Local config (do not commit machine-specific paths/keys)
+**/local.properties
+**/*.jks
+**/*.keystore
+
+# Gradle
+.gradle/
+**/.gradle/
+
+# Android/Gradle build outputs
+**/build/
+**/.cxx/
+**/.externalNativeBuild/
+
+# Android artifacts
+*.apk
+*.aab
+*.aar
+captures/
+*.hprof
+
+# Logs
+*.log
+
+

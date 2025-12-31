@@ -1,0 +1,67 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+android {
+    namespace = 'com.otplesssdk.utils'
+    compileSdk = 34
+
+    defaultConfig {
+        minSdk = 21
+        targetSdk = 34
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            // Library modules should not enable minification/obfuscation.
+            // Keep rules in consumerProguardFiles so the consuming app controls shrinking.
+            minifyEnabled = false
+        }
+    }
+    
+    // Keep lint permission checks enabled; permission-protected APIs must be guarded locally.
+    lint {
+        // Work around a known lint crash ("Invalid offsets") seen in IndentationDetector
+        // when analyzing this module.
+        disable 'SuspiciousIndentation'
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+    // NOTE: Keep this version compatible with compileSdk=34.
+    implementation 'androidx.core:core-ktx:1.13.1'
+
+    // Kotlin Coroutines for async operations
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    // OkHttp for event sending
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    // Google Play Integrity API (optional, for device integrity verification)
+    implementation 'com.google.android.play:integrity:1.4.0'
+
+    // Google Play Install Referrer API (for install referrer tracking)
+    implementation 'com.android.installreferrer:installreferrer:2.2'
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

@@ -1,0 +1,22 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    plugins {
+        id "com.android.application" version "8.13.2"
+        id "com.android.library" version "8.13.2"
+        id "org.jetbrains.kotlin.android" version "2.3.0"
+    }
+}
+
+rootProject.name = "sna-sdk-android"
+include ':utils-sdk'
+include ':sna-sdk'
+include ':otp-sdk'
+include ':app'
+project(':utils-sdk').projectDir = new File('utils-sdk')
+project(':sna-sdk').projectDir = new File('sna-sdk')
+project(':otp-sdk').projectDir = new File('otp-sdk')
+project(':app').projectDir = new File('app')

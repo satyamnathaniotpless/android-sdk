@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Required for sending events -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Required for network type detection (normal permission, no user action) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+</manifest>
