@@ -53,7 +53,7 @@ class OtpSdk private constructor(private val context: Context) {
 
         @JvmStatic
         fun setLoggingEnabled(enabled: Boolean) {
-            SdkLogger.setDebugEnabled(enabled)
+            SdkLogger.setEnabled(enabled)
         }
 
         @JvmStatic
@@ -90,6 +90,29 @@ class OtpSdk private constructor(private val context: Context) {
         )
         
         val config = OtpConfig(channels = channels)
+        OtpDispatcher.start(context, config, callback)
+    }
+
+    /**
+     * Start listening for OTP using a custom configuration.
+     *
+     * Use this overload when you need to customize OTP parsing (length/regex/keywords),
+     * WhatsApp timeout, or stored-result replay settings.
+     */
+    fun startListening(config: OtpConfig, callback: OtpCallback) {
+        SdkLogger.d("OtpSdk", "startListening called with config: $config")
+
+        // Send event
+        EventSender.sendEvent(
+            eventName = "otp_listening_started",
+            properties = mapOf(
+                "channels" to config.channels.map { it.name },
+                "channel_count" to config.channels.size,
+                "has_sms" to config.channels.contains(OtpChannel.SMS),
+                "has_whatsapp" to config.channels.contains(OtpChannel.WHATSAPP)
+            )
+        )
+
         OtpDispatcher.start(context, config, callback)
     }
 

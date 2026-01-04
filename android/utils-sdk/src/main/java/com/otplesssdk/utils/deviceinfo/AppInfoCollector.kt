@@ -6,11 +6,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import java.security.MessageDigest
 
-/**
- * Collects application-related information.
- */
 internal object AppInfoCollector {
-    fun collect(context: Context, packageInfo: PackageInfo?, referrer: String?): AppInfo {
+    fun collect(context: Context, packageInfo: PackageInfo?): AppInfo {
         return AppInfo(
             appVersion = packageInfo?.versionName,
             appVersionCode = getAppVersionCode(packageInfo),
@@ -18,9 +15,7 @@ internal object AppInfoCollector {
             appTargetSdk = getTargetSdkVersion(context),
             appMinSdk = getMinSdkVersion(context),
             installSource = getInstallSource(context),
-            referrer = referrer,
             appSignatureHash = getAppSignatureHash(context),
-            signingCerts = getSigningCerts(context),
             firstInstallTime = packageInfo?.firstInstallTime,
             lastUpdateTime = packageInfo?.lastUpdateTime,
             isInstantApp = getIsInstantApp(context)
@@ -64,6 +59,7 @@ internal object AppInfoCollector {
     
     private fun getInstallSource(context: Context): String? {
         return try {
+            @Suppress("DEPRECATION")
             val installerPackageName = context.packageManager.getInstallerPackageName(context.packageName)
             installerPackageName ?: "unknown"
         } catch (e: Exception) {
@@ -111,57 +107,6 @@ internal object AppInfoCollector {
         }
     }
     
-    private fun getSigningCerts(context: Context): List<String>? {
-        return try {
-            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                context.packageManager.getPackageInfo(
-                    context.packageName,
-                    PackageManager.GET_SIGNATURES
-                )
-            }
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val signingInfo = packageInfo.signingInfo
-                val signers = if (signingInfo == null) {
-                    null
-                } else if (signingInfo.hasMultipleSigners()) {
-                    signingInfo.apkContentsSigners
-                } else {
-                    signingInfo.signingCertificateHistory
-                }
-                signers?.mapNotNull { cert ->
-                    try {
-                        val md = MessageDigest.getInstance("SHA-256")
-                        val digest = md.digest(cert.toByteArray())
-                        digest.joinToString("") { "%02x".format(it) }
-                    } catch (e: Exception) {
-                        null
-                    }
-                }?.takeIf { it.isNotEmpty() }
-            } else {
-                @Suppress("DEPRECATION")
-                val signatures = packageInfo.signatures
-                signatures?.mapNotNull { signature ->
-                    try {
-                        val md = MessageDigest.getInstance("SHA-256")
-                        val digest = md.digest(signature.toByteArray())
-                        digest.joinToString("") { "%02x".format(it) }
-                    } catch (e: Exception) {
-                        null
-                    }
-                }?.takeIf { it.isNotEmpty() }
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-    
     private fun getIsInstantApp(context: Context): Boolean? {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -182,9 +127,7 @@ internal data class AppInfo(
     val appTargetSdk: Int? = null,
     val appMinSdk: Int? = null,
     val installSource: String? = null,
-    val referrer: String? = null,
     val appSignatureHash: String? = null,
-    val signingCerts: List<String>? = null,
     val firstInstallTime: Long? = null,
     val lastUpdateTime: Long? = null,
     val isInstantApp: Boolean? = null

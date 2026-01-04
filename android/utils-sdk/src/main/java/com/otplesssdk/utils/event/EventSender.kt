@@ -4,17 +4,17 @@ import android.content.Context
 import com.otplesssdk.utils.coroutines.SdkCoroutineScope
 import com.otplesssdk.utils.deviceinfo.DeviceInfoCollector
 import com.otplesssdk.utils.ids.SessionIdManager
+import com.otplesssdk.utils.json.Json
 import com.otplesssdk.utils.logger.SdkLogger
+import com.otplesssdk.utils.network.ApiClient
+import com.otplesssdk.utils.network.HttpClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -32,12 +32,6 @@ object EventSender {
     private val eventJob = SupervisorJob()
     private val eventScope = SdkCoroutineScope.createIOScope(parentJob = eventJob)
     private val isShutdown = AtomicBoolean(false)
-    
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .build()
 
     // Session-based event counter (resets when app restarts)
     private val sessionEventCounter = AtomicInteger(0)
@@ -55,9 +49,6 @@ object EventSender {
     /**
      * Prevents any new event submissions and begins a graceful shutdown.
      *
-     * In-flight event work is allowed to finish. If you need to wait until all in-flight
-     * work finishes, call [shutdownAndWait].
-     *
      * Most apps should not need to call this. Use only when you want to explicitly stop
      * background work (e.g., during teardown in tests).
      */
@@ -70,25 +61,13 @@ object EventSender {
         // Stop accepting new work without abruptly cancelling in-flight tasks.
         eventJob.complete()
     }
-
-    /**
-     * Triggers shutdown (if not already started) and waits for in-flight work to finish.
-     *
-     * This is a blocking call; avoid calling it from the main thread.
-     */
-    @JvmStatic
-    fun shutdownAndWait() {
-        shutdown()
-        runBlocking {
-            eventJob.join()
-        }
-    }
     
     // SDK information (set during initialization or globally)
     @Volatile
     var sdkVersion: String? = null
         set(value) {
             field = value?.takeIf { it.isNotBlank() }
+            HttpClient.setSdkInfo(sdkName = sdkName, sdkVersion = field)
             if (value != null && value.isNotBlank()) {
                 SdkLogger.d(TAG, "SDK version set globally: $value")
             }
@@ -98,6 +77,7 @@ object EventSender {
     var sdkName: String? = null
         set(value) {
             field = value?.takeIf { it.isNotBlank() }
+            HttpClient.setSdkInfo(sdkName = field, sdkVersion = sdkVersion)
             if (value != null && value.isNotBlank()) {
                 SdkLogger.d(TAG, "SDK name set globally: $value")
             }
@@ -124,7 +104,7 @@ object EventSender {
     
     /**
      * Initialize the event sender with application context.
-     * This enables automatic device info collection, install ID, and session ID generation.
+     * This enables automatic device info collection, inid and tsid generation.
      * 
      * @param context Application context
      * @param sdkName SDK name (e.g., "otp-sdk", "sna-sdk") - will be used only if global EventSender.sdkName is not set
@@ -141,6 +121,14 @@ object EventSender {
     ) {
         appContext = context.applicationContext
         this.appId = appId?.takeIf { it.isNotBlank() }
+
+        // Configure shared HTTP client to attach common headers (x-app-id/inid/tsid) on all requests.
+        HttpClient.configure(
+            context = context.applicationContext,
+            appId = this.appId,
+            sdkName = this.sdkName,
+            sdkVersion = this.sdkVersion
+        )
         
         // Set SDK name only if:
         // 1. A name is provided during initialization, AND
@@ -172,67 +160,42 @@ object EventSender {
             SdkLogger.d(TAG, "Using global event endpoint (SDK endpoint ignored): ${this.eventEndpoint}")
         }
         
-        // Get or generate device ID (will be generated if not exists)
-        val deviceId = SessionIdManager.getDeviceId(context.applicationContext)
-        SdkLogger.d(TAG, "Device ID: $deviceId")
+        val inid = SessionIdManager.getInId(context.applicationContext)
+        SdkLogger.d(TAG) { "inid: $inid" }
         
-        // Get or generate session ID (will be generated if not exists)
-        val sessionId = SessionIdManager.getSessionId(context.applicationContext)
-        SdkLogger.d(TAG, "Session ID: $sessionId")
+        val tsid = SessionIdManager.getTsId(context.applicationContext)
+        SdkLogger.d(TAG) { "tsid: $tsid" }
         
         SdkLogger.d(TAG, "EventSender initialized - SDK: ${this.sdkName}, Version: ${this.sdkVersion}, App ID: ${this.appId ?: "not set"}, Endpoint: ${this.eventEndpoint ?: "not set"}")
-        
-        // Start collecting install referrer in background (non-blocking)
-        DeviceInfoCollector.startReferrerCollection(context.applicationContext)
+
+        // Warm up device info cache so subsequent events/API calls have richer device_info sooner.
+        DeviceInfoCollector.warmUp(
+            context = context.applicationContext,
+            sdkVersion = this.sdkVersion,
+            sdkName = this.sdkName
+        )
     }
     
     /**
-     * Get the persistent device ID (persists across app installs).
-     * If no device ID exists, a new one will be generated.
+     * Get the install ID (persists across app installs until uninstall).
      * Returns null if EventSender has not been initialized.
      * 
-     * @return Device ID or null if not initialized
+     * @return inid or null if not initialized
      */
-    fun getDeviceId(): String? {
+    fun getInId(): String? {
         val context = appContext ?: return null
-        return SessionIdManager.getDeviceId(context)
+        return SessionIdManager.getInId(context)
     }
     
     /**
-     * Get the current session ID (persists until app restart).
-     * If no session ID exists, a new one will be generated.
+     * Get the current session ID (persists for this app process/session).
      * Returns null if EventSender has not been initialized.
      * 
-     * @return Session ID or null if not initialized
+     * @return tsid or null if not initialized
      */
-    fun getSessionId(): String? {
+    fun getTsId(): String? {
         val context = appContext ?: return null
-        return SessionIdManager.getSessionId(context)
-    }
-    
-    /**
-     * Reset the session event counter (call when starting a new session).
-     * Note: This only resets the event counter, not the session ID.
-     */
-    fun resetSessionCounter() {
-        sessionEventCounter.set(0)
-        SdkLogger.d(TAG, "Session event counter reset")
-    }
-    
-    /**
-     * Start a new session (generates new session ID and resets event counter).
-     * Call this when you want to start a fresh session.
-     */
-    fun startNewSession() {
-        val context = appContext
-        if (context == null) {
-            SdkLogger.w(TAG, "Cannot start new session: EventSender not initialized")
-            return
-        }
-        
-        val newSessionId = SessionIdManager.startNewSession(context)
-        sessionEventCounter.set(0)
-        SdkLogger.d(TAG, "New session started: $newSessionId")
+        return SessionIdManager.getTsId(context)
     }
     
     /**
@@ -243,25 +206,14 @@ object EventSender {
     }
     
     /**
-     * Enhance event data with automatic fields (eventId, deviceId, sessionId, deviceInfo).
+     * Enhance event data with automatic fields (eventId, inid, tsid, deviceInfo).
      */
     private fun enhanceEventData(event: EventData): EventData {
         val context = appContext
         val nextEventId = getNextEventId()
         
-        // Get device ID if context is available
-        val deviceId = if (context != null) {
-            SessionIdManager.getDeviceId(context)
-        } else {
-            event.deviceId
-        }
-        
-        // Get session ID (use existing from event or get/generate from SessionIdManager)
-        val enhancedSessionId = if (context != null) {
-            event.sessionId ?: SessionIdManager.getSessionId(context)
-        } else {
-            event.sessionId
-        }
+        val inid = if (context != null) SessionIdManager.getInId(context) else event.inid
+        val tsid = if (context != null) (event.tsid ?: SessionIdManager.getTsId(context)) else event.tsid
         
         // Use SDK name from initialization or from event
         val finalSdkName = sdkName?.takeIf { it.isNotBlank() } ?: event.sdkName
@@ -271,8 +223,8 @@ object EventSender {
         
         return event.copy(
             eventId = nextEventId,
-            deviceId = deviceId,
-            sessionId = enhancedSessionId,
+            inid = inid,
+            tsid = tsid,
             sdkName = finalSdkName
             // deviceInfo is no longer stored in EventData - it's collected as JSON during event building
         )
@@ -359,28 +311,48 @@ object EventSender {
                     .post(requestBody)
                     .addHeader("Content-Type", JSON_MEDIA_TYPE)
                 
-                // Add x-app-id header if set during initialization
-                appId?.let { id ->
-                    requestBuilder.addHeader("x-app-id", id)
+                // If user_id/asid are available for this event, promote them to common headers
+                // so other API calls can also include them (until updated/cleared).
+                if (!enhancedEvent.userId.isNullOrBlank() || !enhancedEvent.asid.isNullOrBlank()) {
+                    HttpClient.setUserInfo(
+                        userId = enhancedEvent.userId,
+                        asid = enhancedEvent.asid
+                    )
                 }
-                
+
                 // Add state header if provided in event
                 enhancedEvent.state?.let { state ->
-                    requestBuilder.addHeader("state", state)
+                    requestBuilder.addHeader("x-state", state)
                 }
                 
                 val request = requestBuilder.build()
-                httpClient.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
+                val result = ApiClient.execute(
+                    request = request,
+                    policy = ApiClient.NetworkPolicy(
+                        timeoutMs = DEFAULT_TIMEOUT_SECONDS * 1000L,
+                        maxBodyBytes = 32 * 1024L,
+                    )
+                )
+                when (result) {
+                    is ApiClient.ApiResult.Success -> {
                         SdkLogger.d(
                             TAG,
                             "Event sent successfully: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId})"
                         )
-                    } else {
-                        SdkLogger.w(
-                            TAG,
-                            "Event send failed with status ${response.code}: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId})"
-                        )
+                    }
+                    is ApiClient.ApiResult.Failure -> {
+                        val code = result.code
+                        if (code != null) {
+                            SdkLogger.w(
+                                TAG,
+                                "Event send failed with status $code: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId})"
+                            )
+                        } else {
+                            SdkLogger.w(
+                                TAG,
+                                "Event send failed: ${enhancedEvent.eventName} (eventId=${enhancedEvent.eventId}) error=${result.error}"
+                            )
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -390,48 +362,23 @@ object EventSender {
     }
 
     private fun buildEventJson(event: EventData, context: Context?): String {
-        val json = StringBuilder()
-        json.append("{")
-        json.append("\"sdk_name\":").append(escapeJson(event.sdkName)).append(",")
-        json.append("\"event_name\":").append(escapeJson(event.eventName)).append(",")
-        json.append("\"timestamp\":").append(event.timestamp)
+        val root = linkedMapOf<String, Any?>()
+        root["sdk_name"] = event.sdkName
+        root["event_name"] = event.eventName
+        root["timestamp"] = event.timestamp
 
-        // Only include when set. EventSender assigns eventId during enhanceEventData().
-        event.eventId?.let { id ->
-            json.append(",\"event_id\":").append(id)
-        }
-        
-        if (event.deviceId != null) {
-            json.append(",\"device_id\":").append(escapeJson(event.deviceId))
-        }
-        
-        if (event.userId != null) {
-            json.append(",\"user_id\":").append(escapeJson(event.userId))
-        }
-        
-        if (event.sessionId != null) {
-            json.append(",\"session_id\":").append(escapeJson(event.sessionId))
-        }
-        
-        if (event.requestId != null) {
-            json.append(",\"request_id\":").append(escapeJson(event.requestId))
-        }
-        
-        if (event.asid != null) {
-            json.append(",\"asid\":").append(escapeJson(event.asid))
-        }
-        
+        event.eventId?.let { root["event_id"] = it }
+        event.inid?.let { root["inid"] = it }
+        event.userId?.let { root["user_id"] = it }
+        event.tsid?.let { root["tsid"] = it }
+        event.requestId?.let { root["request_id"] = it }
+        event.asid?.let { root["asid"] = it }
+
         if (event.properties.isNotEmpty()) {
-            json.append(",\"properties\":{")
-            val props = event.properties.entries.joinToString(",") { (key, value) ->
-                "\"${escapeJsonKey(key)}\":${toJsonValue(value)}"
-            }
-            json.append(props)
-            json.append("}")
+            root["properties"] = event.properties
         }
-        
-        // Get device info JSON from DeviceInfoCollector (reusable by other SDKs)
-        val deviceInfoJson = if (context != null) {
+
+        val deviceInfoContent = if (context != null) {
             DeviceInfoCollector.getDeviceInfoJson(
                 context,
                 sdkVersion = sdkVersion,
@@ -440,104 +387,12 @@ object EventSender {
         } else {
             ""
         }
-        
-        if (deviceInfoJson.isNotEmpty()) {
-            json.append(",\"device_info\":{")
-            json.append(deviceInfoJson)
-            json.append("}")
-        }
-        
-        json.append("}")
-        return json.toString()
-    }
-    
-    /**
-     * Escape JSON string value. Handles all special characters including control characters.
-     */
-    private fun escapeJson(value: String): String {
-        val sb = StringBuilder(value.length + 10)
-        sb.append('"')
-        for (i in value.indices) {
-            val ch = value[i]
-            when (ch) {
-                '\\' -> sb.append("\\\\")
-                '"' -> sb.append("\\\"")
-                '\n' -> sb.append("\\n")
-                '\r' -> sb.append("\\r")
-                '\t' -> sb.append("\\t")
-                '\b' -> sb.append("\\b")
-                '\u000C' -> sb.append("\\f") // Form feed
-                else -> {
-                    // Escape control characters (U+0000 to U+001F)
-                    if (ch < ' ') {
-                        sb.append("\\u")
-                        sb.append(String.format("%04x", ch.code))
-                    } else {
-                        sb.append(ch)
-                    }
-                }
-            }
-        }
-        sb.append('"')
-        return sb.toString()
-    }
-    
-    /**
-     * Escape JSON key. Keys should not contain control characters or quotes.
-     */
-    private fun escapeJsonKey(key: String): String {
-        val sb = StringBuilder(key.length + 5)
-        for (i in key.indices) {
-            val ch = key[i]
-            when (ch) {
-                '\\' -> sb.append("\\\\")
-                '"' -> sb.append("\\\"")
-                else -> {
-                    // Control characters should not appear in keys, but handle them safely
-                    if (ch < ' ') {
-                        sb.append("\\u")
-                        sb.append(String.format("%04x", ch.code))
-                    } else {
-                        sb.append(ch)
-                    }
-                }
-            }
-        }
-        return sb.toString()
-    }
-    
-    private fun toJsonValue(value: Any?): String {
-        return when (value) {
-            null -> "null"
-            is Boolean -> value.toString()
-            is Number -> when (value) {
-                // Only Float/Double can produce non-finite values like NaN/Infinity which are invalid JSON numbers.
-                // For those, emit the JSON literal null; leave all other Number types unchanged.
-                is Double -> if (!value.isNaN() && !value.isInfinite()) value.toString() else "null"
-                is Float -> if (!value.isNaN() && !value.isInfinite()) value.toString() else "null"
-                else -> value.toString()
-            }
-            is String -> escapeJson(value)
-            is Map<*, *> -> mapToJson(value)
-            is Iterable<*> -> listToJson(value)
-            is Array<*> -> listToJson(value.asList())
-            else -> escapeJson(value.toString())
-        }
-    }
 
-    private fun mapToJson(map: Map<*, *>): String {
-        val entries = map.entries.joinToString(",") { (key, value) ->
-            val keyString = key?.toString() ?: "null"
-            "\"${escapeJsonKey(keyString)}\":${toJsonValue(value)}"
+        if (deviceInfoContent.isNotEmpty()) {
+            root["device_info"] = Json.Raw("{${deviceInfoContent}}")
         }
-        return "{$entries}"
-    }
 
-    private fun listToJson(values: Iterable<*>): String {
-        val entries = values.joinToString(",") { item ->
-            toJsonValue(item)
-        }
-        return "[$entries]"
+        return Json.value(root)
     }
     
     /**

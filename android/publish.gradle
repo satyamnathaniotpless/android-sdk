@@ -1,0 +1,118 @@
+/*
+ * Shared Maven publishing config for Android library modules.
+ *
+ * Usage (in each library module's build.gradle):
+ *   ext.PUBLISH_ARTIFACT_ID = "sna-sdk" // required
+ *   ext.POM_NAME = "SNA SDK"            // optional overrides
+ *   ext.POM_DESCRIPTION = "..."         // optional overrides
+ *   apply from: rootProject.file("publish.gradle")
+ *
+ * Configure defaults via android/gradle.properties:
+ *   GROUP=com.otplesssdk
+ *   VERSION_NAME=1.0.0
+ *   POM_URL=https://github.com/<org>/<repo>
+ *   POM_SCM_URL=https://github.com/<org>/<repo>.git
+ *   POM_LICENSE_NAME=The Apache License, Version 2.0
+ *   POM_LICENSE_URL=https://www.apache.org/licenses/LICENSE-2.0.txt
+ *   POM_DEVELOPER_ID=otpless
+ *   POM_DEVELOPER_NAME=Otpless
+ *
+ * Remote publish (optional):
+ *   -PmavenUrl=https://.../repository/maven-releases/
+ *   -PmavenUsername=...
+ *   -PmavenPassword=...
+ *
+ * Signing (optional, typically required for Maven Central):
+ *   -PsigningKey="-----BEGIN PGP PRIVATE KEY BLOCK-----\n...\n-----END PGP PRIVATE KEY BLOCK-----"
+ *   -PsigningPassword=...
+ */
+
+apply plugin: "maven-publish"
+apply plugin: "signing"
+
+def requiredArtifactId = project.findProperty("PUBLISH_ARTIFACT_ID") ?: project.ext.find("PUBLISH_ARTIFACT_ID")
+if (!requiredArtifactId) {
+    throw new GradleException("Missing PUBLISH_ARTIFACT_ID for ${project.path}. Set ext.PUBLISH_ARTIFACT_ID before applying publish.gradle.")
+}
+
+group = (project.findProperty("GROUP") ?: "com.otplesssdk")
+version = (project.findProperty("VERSION_NAME") ?: "0.0.1-SNAPSHOT")
+
+// AGP 8+: configure publishing variants + sources/javadoc jars from the Android plugin.
+android {
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+
+                groupId = project.group.toString()
+                artifactId = requiredArtifactId.toString()
+                version = project.version.toString()
+
+                pom {
+                    name = (project.findProperty("POM_NAME") ?: project.ext.find("POM_NAME") ?: project.name).toString()
+                    description = (project.findProperty("POM_DESCRIPTION") ?: project.ext.find("POM_DESCRIPTION") ?: project.description ?: project.name).toString()
+                    url = (project.findProperty("POM_URL") ?: "https://example.com").toString()
+
+                    licenses {
+                        license {
+                            name = (project.findProperty("POM_LICENSE_NAME") ?: "The Apache License, Version 2.0").toString()
+                            url = (project.findProperty("POM_LICENSE_URL") ?: "https://www.apache.org/licenses/LICENSE-2.0.txt").toString()
+                            distribution = "repo"
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id = (project.findProperty("POM_DEVELOPER_ID") ?: "otpless").toString()
+                            name = (project.findProperty("POM_DEVELOPER_NAME") ?: "Otpless").toString()
+                        }
+                    }
+
+                    scm {
+                        url = (project.findProperty("POM_SCM_URL") ?: (project.findProperty("POM_URL") ?: "https://example.com")).toString()
+                    }
+                }
+            }
+        }
+
+        repositories {
+            // Handy for local verification without touching ~/.m2
+            maven {
+                name = "localBuildRepo"
+                url = uri("${rootProject.buildDir}/repo")
+            }
+
+            def mavenUrl = project.findProperty("mavenUrl")
+            if (mavenUrl) {
+                maven {
+                    name = "remote"
+                    url = uri(mavenUrl.toString())
+                    credentials {
+                        username = (project.findProperty("mavenUsername") ?: System.getenv("MAVEN_USERNAME") ?: "").toString()
+                        password = (project.findProperty("mavenPassword") ?: System.getenv("MAVEN_PASSWORD") ?: "").toString()
+                    }
+                }
+            }
+        }
+    }
+
+    // Optional signing (required for Maven Central). Safe to skip for local/GitHub package repos.
+    def signingKey = project.findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
+    def signingPassword = project.findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
+    if (signingKey) {
+        signing {
+            useInMemoryPgpKeys(signingKey.toString(), (signingPassword ?: "").toString())
+            sign publishing.publications.release
+        }
+    }
+}

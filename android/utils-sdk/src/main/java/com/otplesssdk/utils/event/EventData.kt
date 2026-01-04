@@ -28,9 +28,9 @@ data class EventData(
     val eventId: Int? = null,
     
     /**
-     * Persistent device ID (persists across app installs, based on GAID/device ID)
+     * Install ID (persists until app uninstall).
      */
-    val deviceId: String? = null,
+    val inid: String? = null,
     
     /**
      * Event properties/metadata as key-value pairs
@@ -43,9 +43,9 @@ data class EventData(
     val userId: String? = null,
     
     /**
-     * Optional session identifier
+     * Session ID (persists for the current app process/session).
      */
-    val sessionId: String? = null,
+    val tsid: String? = null,
     
     /**
      * Optional request identifier

@@ -3,6 +3,10 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+ext.PUBLISH_ARTIFACT_ID = "otp-sdk"
+ext.POM_NAME = "OTP SDK"
+ext.POM_DESCRIPTION = "OTP auto-read SDK for Android (SMS Retriever + WhatsApp zero-tap templates)."
+
 android {
     namespace = 'com.otplesssdk.otp'
     compileSdk = 34
@@ -38,11 +42,15 @@ dependencies {
     implementation project(':utils-sdk')
 
     // SMS Retriever
-    implementation 'com.google.android.gms:play-services-auth:21.4.0'
+    // implementation 'com.google.android.gms:play-services-auth:21.4.0'
     implementation 'com.google.android.gms:play-services-auth-api-phone:18.2.0'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // OTP SDK uses coroutine primitives (scope/launch/delay) but does not require Android Main dispatchers here.
+    // Keep Android dispatchers in utils-sdk (SdkCoroutineScope uses Dispatchers.Main).
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
+
+apply from: rootProject.file("publish.gradle")

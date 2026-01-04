@@ -20,18 +20,23 @@
         <receiver
             android:name="com.otplesssdk.otp.receiver.WhatsAppOtpReceiver"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="true"
+            android:permission="com.whatsapp.permission.BROADCAST">
+            <intent-filter>
+                <action android:name="com.whatsapp.otp.OTP_RETRIEVED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name="com.otplesssdk.otp.receiver.WhatsAppOtpErrorReceiver"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="true"
+            android:permission="com.whatsapp.permission.BROADCAST">
+            <intent-filter>
+                <action android:name="com.whatsapp.otp.OTP_ERROR" />
+            </intent-filter>
+        </receiver>
 
-        <!-- Target for the PendingIntent passed to WhatsApp during handshake. -->
-        <receiver
-            android:name="com.otplesssdk.otp.receiver.WhatsAppOtpCallbackReceiver"
-            android:enabled="true"
-            android:exported="false" />
     </application>
 
 </manifest>

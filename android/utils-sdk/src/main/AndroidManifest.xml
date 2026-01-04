@@ -7,4 +7,15 @@
     <!-- Required for network type detection (normal permission, no user action) -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Advertising ID permission (normal). Helps GAID collection on Android 13+. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+        <package android:name="org.telegram.messenger" />
+        <package android:name="com.truecaller" />
+        <package android:name="com.viber.voip" />
+    </queries>
+
 </manifest>

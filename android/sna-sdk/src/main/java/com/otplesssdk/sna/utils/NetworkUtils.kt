@@ -50,13 +50,18 @@ internal object NetworkUtils {
                 @Suppress("DEPRECATION")
                 if (activeInfo != null && activeInfo.type == ConnectivityManager.TYPE_MOBILE) {
                     @Suppress("DEPRECATION")
-                    if (activeInfo.isConnectedOrConnecting) return@try true
+                    if (activeInfo.isConnectedOrConnecting) true else {
+                        // Fallback (pre-O): `dataState` reports current data connection state, not the user
+                        // "mobile data enabled" toggle.
+                        @Suppress("DEPRECATION")
+                        tmForDataCheck.dataState == TelephonyManager.DATA_CONNECTED
+                    }
+                } else {
+                    // Fallback (pre-O): `dataState` reports current data connection state, not the user
+                    // "mobile data enabled" toggle.
+                    @Suppress("DEPRECATION")
+                    tmForDataCheck.dataState == TelephonyManager.DATA_CONNECTED
                 }
-
-                // Fallback (pre-O): `dataState` reports current data connection state, not the user
-                // "mobile data enabled" toggle.
-                @Suppress("DEPRECATION")
-                tmForDataCheck.dataState == TelephonyManager.DATA_CONNECTED
             }
         } catch (_: SecurityException) {
             false
@@ -65,15 +70,4 @@ internal object NetworkUtils {
             false
         }
     }
-
-    /**
-     * Deprecated: prefer [isMobileDataAvailable]. This name is misleading because:
-     * - API 26+ returns "enabled"
-     * - pre-O returns "connected/connecting" (best-effort)
-     */
-    @Deprecated(
-        message = "Use isMobileDataAvailable(); API 26+ reports enabled, pre-O reports connected/available.",
-        replaceWith = ReplaceWith("isMobileDataAvailable(context)")
-    )
-    fun isMobileDataEnabled(context: Context): Boolean = isMobileDataAvailable(context)
 }

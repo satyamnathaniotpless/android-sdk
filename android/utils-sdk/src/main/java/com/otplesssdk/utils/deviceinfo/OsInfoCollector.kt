@@ -2,9 +2,6 @@ package com.otplesssdk.utils.deviceinfo
 
 import android.os.Build
 
-/**
- * Collects OS-related information.
- */
 internal object OsInfoCollector {
     fun collect(): OsInfo {
         return OsInfo(

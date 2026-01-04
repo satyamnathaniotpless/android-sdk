@@ -1,77 +1,29 @@
 package com.otplesssdk.otp.utils
 
 import com.otplesssdk.otp.models.OtpConfig
-import com.otplesssdk.utils.logger.SdkLogger
-import java.util.regex.PatternSyntaxException
 
 internal object OtpParser {
-    private const val TAG = "OtpParser"
+    // Keep parsing intentionally simple:
+    // - Match either 6-digit or 4-digit OTP (in that order)
+    // - Return the first match from the start of the message
+    // - Digits only
+    private val OTP_4_OR_6 = Regex("\\b(\\d{6}|\\d{4})\\b")
 
-    fun extractOtp(message: String, config: OtpConfig): String? {
+    fun extractOtp(message: String): String? {
         val trimmed = message.trim()
         if (trimmed.isEmpty()) {
             return null
         }
 
-        val lengthRange = config.lengthRange()
-        val regexes = buildRegexes(config, lengthRange)
-
-        for (regex in regexes) {
-            val match = regex.find(trimmed) ?: continue
-            val candidate = if (match.groupValues.size > 1) {
-                match.groupValues[1]
-            } else {
-                match.value
-            }
-            if (isValidOtp(candidate, config)) {
-                return candidate
-            }
-            val digitsOnly = candidate.filter { it.isDigit() }
-            if (digitsOnly.isNotEmpty() && isValidOtp(digitsOnly, config)) {
-                return digitsOnly
-            }
-        }
-
-        return null
+        return OTP_4_OR_6.find(trimmed)?.groupValues?.getOrNull(1)
     }
 
-    fun isValidOtp(value: String, config: OtpConfig): Boolean {
+    fun isValidOtp(value: String): Boolean {
         val otp = value.trim()
         if (otp.isEmpty() || otp.any { !it.isDigit() }) {
             return false
         }
-        val lengthRange = config.lengthRange()
-        return otp.length in lengthRange
-    }
-
-    private fun buildRegexes(config: OtpConfig, lengthRange: IntRange): List<Regex> {
-        val patterns = mutableListOf<Regex>()
-
-        for (pattern in config.otpRegexes) {
-            try {
-                patterns.add(Regex(pattern))
-            } catch (exception: PatternSyntaxException) {
-                SdkLogger.w(TAG, "Invalid OTP regex pattern skipped: $pattern", exception)
-            }
-        }
-
-        val lengthPattern = if (lengthRange.first == lengthRange.last) {
-            "{${lengthRange.first}}"
-        } else {
-            "{${lengthRange.first},${lengthRange.last}}"
-        }
-
-        val keywords = config.otpKeywords
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-        for (keyword in keywords) {
-                val escaped = Regex.escape(keyword)
-                val pattern = "(?i)\\b$escaped\\b(?:\\s+is)?[:\\s-]*([0-9]$lengthPattern)\\b"
-                patterns.add(Regex(pattern))
-            }
-
-        patterns.add(Regex("\\b\\d$lengthPattern\\b"))
-
-        return patterns
+        // Only accept common OTP lengths: 4 or 6 digits.
+        return otp.length == 4 || otp.length == 6
     }
 }

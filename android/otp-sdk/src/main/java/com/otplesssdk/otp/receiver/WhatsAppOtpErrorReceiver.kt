@@ -3,8 +3,8 @@ package com.otplesssdk.otp.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import com.otplesssdk.otp.utils.OtpDispatcher
-import com.otplesssdk.otp.utils.PendingIntentReader
 import com.otplesssdk.otp.utils.WhatsAppOtpHelper
 import com.otplesssdk.utils.coroutines.SdkCoroutineScope
 import com.otplesssdk.utils.event.EventSender
@@ -28,6 +28,12 @@ class WhatsAppOtpErrorReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         val appContext = context.applicationContext
         val safeIntent = Intent(intent)
+        val senderPackage = if (Build.VERSION.SDK_INT >= 34) {
+            @Suppress("NewApi")
+            sentFromPackage
+        } else {
+            null
+        }
         val receiverJob = SupervisorJob()
         val ioScope = SdkCoroutineScope.createIOScope(parentJob = receiverJob)
 
@@ -42,15 +48,11 @@ class WhatsAppOtpErrorReceiver : BroadcastReceiver() {
                         SdkLogger.w(TAG, "Ignored WhatsApp error broadcast: missing error extras")
                         return@launch
                     }
-
-                    // Validate PendingIntent presence early to avoid dispatcher work on malformed intents.
-                    val pendingIntent = PendingIntentReader.getPendingIntent(safeIntent)
-                    if (pendingIntent == null) {
-                        SdkLogger.w(TAG, "Ignored WhatsApp error broadcast: missing PendingIntent extra")
-                        return@launch
-                    }
-
-                    OtpDispatcher.handleWhatsAppErrorIntent(appContext, safeIntent, pendingIntent)
+                    OtpDispatcher.handleWhatsAppErrorIntent(
+                        appContext,
+                        safeIntent,
+                        senderPackage = senderPackage
+                    )
                 } catch (t: Throwable) {
                     SdkLogger.e(TAG, "Failed to handle WhatsApp OTP error intent", t)
                     EventSender.sendEvent(

@@ -9,62 +9,29 @@ import com.otplesssdk.sna.models.SnaHeader
 import com.otplesssdk.sna.models.SnaResult
 import com.otplesssdk.sna.models.SnaTimings
 import com.otplesssdk.utils.logger.SdkLogger
+import com.otplesssdk.utils.network.HttpClient
+import com.otplesssdk.utils.network.NetworkExceptionClassifier
+import com.otplesssdk.utils.network.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import okhttp3.Call
-import okhttp3.Callback
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import java.io.IOException
 import java.io.InterruptedIOException
 import java.net.ProtocolException
 import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 import java.net.UnknownServiceException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import okio.Buffer
 
 internal object SnaUrlHandler {
     private const val TAG = "SNASdk:SnaUrlHandler"
     private val bindMutex = Mutex()
-
-    private suspend fun await(call: Call): Response =
-        suspendCancellableCoroutine { continuation ->
-            continuation.invokeOnCancellation {
-                call.cancel()
-            }
-
-            call.enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    if (!continuation.isActive) return
-                    continuation.resumeWithException(e)
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    if (!continuation.isActive) {
-                        response.close()
-                        return
-                    }
-                    continuation.resume(response)
-                }
-            })
-        }
-
-    private fun redactUrl(url: String): String {
-        val noFragment = url.substringBefore('#')
-        val base = noFragment.substringBefore('?')
-        return if (noFragment.contains('?')) "$base?…" else base
-    }
 
     private fun formatHops(redirects: List<com.otplesssdk.sna.models.SnaRedirectHop>): String {
         if (redirects.isEmpty()) return "none"
@@ -73,13 +40,12 @@ internal object SnaUrlHandler {
             val dns = hop.dnsMs?.let { " dns=${it}ms" } ?: ""
             val connect = hop.connectMs?.let { " connect=${it}ms" } ?: ""
             val tls = hop.tlsMs?.let { " tls=${it}ms" } ?: ""
-            "$code ${redactUrl(hop.url)} ${hop.durationMs}ms$dns$connect$tls"
+            "$code ${hop.url} ${hop.durationMs}ms$dns$connect$tls"
         }
     }
 
     private fun classifyException(e: Exception): Pair<FailureReason, String?> {
         return when (e) {
-            is UnknownHostException -> FailureReason.NETWORK_ERROR to "DNS_FAILED"
             is SocketTimeoutException -> FailureReason.TIMEOUT to "SOCKET_TIMEOUT"
             is InterruptedIOException -> FailureReason.TIMEOUT to "IO_TIMEOUT"
             is ProtocolException -> {
@@ -96,7 +62,29 @@ internal object SnaUrlHandler {
                     FailureReason.NETWORK_ERROR to e.message
                 }
             }
-            else -> FailureReason.NETWORK_ERROR to e.message
+            else -> {
+                // Base classification on the shared utils-sdk classifier to avoid drift with other modules.
+                when (val apiError = NetworkExceptionClassifier.classify(e)) {
+                    is com.otplesssdk.utils.network.ApiClient.ApiError.Timeout ->
+                        FailureReason.TIMEOUT to "IO_TIMEOUT"
+                    is com.otplesssdk.utils.network.ApiClient.ApiError.Network -> {
+                        val detail = when (apiError.kind) {
+                            com.otplesssdk.utils.network.ApiClient.NetworkErrorKind.DNS -> "DNS_FAILED"
+                            com.otplesssdk.utils.network.ApiClient.NetworkErrorKind.CONNECT -> "CONNECT_FAILED"
+                            com.otplesssdk.utils.network.ApiClient.NetworkErrorKind.TLS -> "TLS_ERROR"
+                            com.otplesssdk.utils.network.ApiClient.NetworkErrorKind.IO -> apiError.message
+                        }
+                        FailureReason.NETWORK_ERROR to detail
+                    }
+                    // SnaUrlHandler preserves coroutine cancellation separately (see catch(CancellationException)).
+                    is com.otplesssdk.utils.network.ApiClient.ApiError.Canceled ->
+                        FailureReason.UNKNOWN_ERROR to "CANCELED"
+                    is com.otplesssdk.utils.network.ApiClient.ApiError.Http ->
+                        FailureReason.NETWORK_ERROR to "HTTP_${apiError.code}"
+                    is com.otplesssdk.utils.network.ApiClient.ApiError.Unknown ->
+                        FailureReason.NETWORK_ERROR to apiError.message
+                }
+            }
         }
     }
 
@@ -176,7 +164,7 @@ internal object SnaUrlHandler {
                 bindMutex.withLock {
                     SdkLogger.d(
                         TAG,
-                        "Starting SNA call url=${redactUrl(httpUrl.toString())} timeoutSeconds=$timeoutSeconds"
+                        "Starting SNA call url=${httpUrl} timeoutSeconds=$timeoutSeconds"
                     )
                     executeWithOptionalCellularBinding(
                         context = context,
@@ -221,7 +209,7 @@ internal object SnaUrlHandler {
         onCellularAcquireMs: (Long) -> Unit,
         onProcessBindMs: (Long) -> Unit
     ): SnaResult {
-        val client = OkHttpClient.Builder()
+        val client = HttpClient.newBuilder()
             .followRedirects(true)
             .followSslRedirects(true)
             .eventListener(tracer)
@@ -270,8 +258,8 @@ internal object SnaUrlHandler {
         }
 
         return try {
-            SdkLogger.d(TAG, "Executing request: ${redactUrl(httpUrlString)}")
-            val response = await(call)
+            SdkLogger.d(TAG, "Executing request: $httpUrlString")
+            val response = call.await()
             val finalUrl = response.request.url.toString()
             val code = response.code
 
@@ -290,7 +278,7 @@ internal object SnaUrlHandler {
                     val hops = tracer.snapshot()
                     SdkLogger.d(
                         TAG,
-                        "SNA success httpCode=$code totalMs=${timingsNow().totalMs} finalUrl=${redactUrl(finalUrl)} hops=${hops.size} (${formatHops(hops)})"
+                        "SNA success httpCode=$code totalMs=${timingsNow().totalMs} finalUrl=$finalUrl hops=${hops.size} (${formatHops(hops)})"
                     )
                     SnaResult.Success(
                         response = finalResponse,
@@ -301,7 +289,7 @@ internal object SnaUrlHandler {
                     val hops = tracer.snapshot()
                     SdkLogger.w(
                         TAG,
-                        "SNA non-2xx httpCode=$code totalMs=${timingsNow().totalMs} finalUrl=${redactUrl(finalUrl)} hops=${hops.size} (${formatHops(hops)})"
+                        "SNA non-2xx httpCode=$code totalMs=${timingsNow().totalMs} finalUrl=$finalUrl hops=${hops.size} (${formatHops(hops)})"
                     )
                     SnaResult.Failure(
                         reason = FailureReason.NETWORK_ERROR,
@@ -319,7 +307,7 @@ internal object SnaUrlHandler {
             val hops = tracer.snapshot()
             SdkLogger.e(
                 TAG,
-                "Network error url=${redactUrl(httpUrlString)} reason=$reason detail=$detail hops=${hops.size} (${formatHops(hops)})",
+                "Network error url=$httpUrlString reason=$reason detail=$detail hops=${hops.size} (${formatHops(hops)})",
                 e
             )
             SnaResult.Failure(

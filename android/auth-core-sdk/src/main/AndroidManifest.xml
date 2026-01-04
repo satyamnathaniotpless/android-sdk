@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      No additional manifest requirements for auth-core-sdk.
+      Permissions/providers required by composed SDKs come from their own manifests (merged at build time).
+    -->
+</manifest>
+

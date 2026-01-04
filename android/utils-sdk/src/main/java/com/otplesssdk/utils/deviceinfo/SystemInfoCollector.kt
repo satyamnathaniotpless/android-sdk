@@ -4,9 +4,6 @@ import android.os.Build
 import java.util.Locale
 import java.util.TimeZone
 
-/**
- * Collects system-related information (timezone, locale, emulator, time).
- */
 internal object SystemInfoCollector {
     fun collect(): SystemInfo {
         return SystemInfo(

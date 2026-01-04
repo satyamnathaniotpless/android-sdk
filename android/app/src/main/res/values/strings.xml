@@ -1,5 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SNA SDK Test</string>
+    <string name="app_name">Otpless SDK Test</string>
+
+    <string name="tab_sna">SNA</string>
+    <string name="tab_otp">OTP</string>
+    <string name="tab_device_info">Device Info</string>
+    <string name="tab_utils">Utils</string>
+
+    <string name="sna_url_hint">SNA URL</string>
+    <string name="sna_fresh_state">Fresh state each run</string>
+    <string name="timeout_s">Timeout (s)</string>
+
+    <string name="run">Run</string>
+    <string name="clear">Clear</string>
+    <string name="copy_url">Copy URL</string>
+    <string name="copy_log">Copy log</string>
+    <string name="copy_headers">Copy headers</string>
+    <string name="get_sim_network_info">Get SIM/Network info</string>
+    <string name="check_mobile_data">Check mobile data</string>
+    <string name="run_blocking">Run (blocking)</string>
+
+    <string name="otp_channels">Channels</string>
+    <string name="otp_sms">SMS</string>
+    <string name="otp_whatsapp">WhatsApp</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="print_hashes">Print SMS app hashes</string>
+    <string name="check_whatsapp">Check WhatsApp</string>
+
+    <string name="request_phone_permissions">Request phone permissions</string>
+    <string name="clear_cache">Clear cache</string>
+    <string name="collect_device_info">Collect Device Info JSON</string>
+    <string name="copy_json">Copy JSON</string>
+    <string name="warm_up">Warm up</string>
+    <string name="network_info">Network info</string>
+    <string name="identifiers_info">Identifiers</string>
+    <string name="app_presence_info">App presence</string>
+
+    <string name="utils_event_sender">EventSender</string>
+    <string name="utils_network">Network / HttpClient</string>
+    <string name="event_endpoint">Event endpoint</string>
+    <string name="app_id">App ID</string>
+    <string name="sdk_name">SDK name</string>
+    <string name="sdk_version">SDK version</string>
+    <string name="init_event_sender">Init EventSender</string>
+    <string name="send_event">Send event</string>
+    <string name="event_name">Event name</string>
+    <string name="event_props_json">Properties (JSON object)</string>
+    <string name="user_id">User ID</string>
+    <string name="asid">ASID</string>
+    <string name="request_id">Request ID</string>
+    <string name="state">State</string>
+
+    <string name="http_url">URL</string>
+    <string name="timeout_ms">Timeout (ms)</string>
+    <string name="max_body_kb">Max body (KB)</string>
+    <string name="custom_header_name">Custom header name</string>
+    <string name="custom_header_value">Custom header value</string>
+    <string name="put_header">Put header</string>
+    <string name="clear_headers">Clear headers</string>
+    <string name="run_request">Run request</string>
+    <string name="run_api_client">Run (ApiClient)</string>
 </resources>
 

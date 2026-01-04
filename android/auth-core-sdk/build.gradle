@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+ext.PUBLISH_ARTIFACT_ID = "auth-core-sdk"
+ext.POM_NAME = "Auth Core SDK"
+ext.POM_DESCRIPTION = "Core orchestration SDK that composes Otpless Android SDK modules (SNA + OTP + Utils)."
+
+android {
+    namespace = 'com.otplesssdk.authcore'
+    compileSdk = 34
+
+    defaultConfig {
+        minSdk = 21
+        targetSdk = 34
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            // Library modules should not minify themselves; consumers control shrinking.
+            minifyEnabled = false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+    // Compose existing SDK modules
+    implementation project(':utils-sdk')
+    implementation project(':otp-sdk')
+    implementation project(':sna-sdk')
+
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
+
+apply from: rootProject.file("publish.gradle")
+

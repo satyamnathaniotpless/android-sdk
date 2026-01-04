@@ -113,10 +113,10 @@ internal class SnaRedirectTracer : EventListener() {
     }
 
     override fun secureConnectEnd(call: Call, handshake: okhttp3.Handshake?) {
-        val hop = synchronized(lock) { currentHopOrNullLocked() } ?: return
-        synchronized(hop) {
+        val now = System.nanoTime()
+        synchronized(lock) {
+            val hop = currentHopOrNullLocked() ?: return
             val start = hop.tlsStartNs ?: return
-            val now = System.nanoTime()
             hop.tlsNs = now - start
         }
     }

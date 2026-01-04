@@ -24,6 +24,7 @@ class SmsRetrieverReceiver : BroadcastReceiver() {
         }
 
         try {
+            SdkLogger.d(TAG) { "Received SMS Retriever broadcast (extras=${intent.extras?.keySet()?.joinToString() ?: "none"})" }
             OtpDispatcher.handleSmsIntent(safeContext, intent)
         } catch (exception: Exception) {
             SdkLogger.e(TAG, "Failed handling SMS Retriever broadcast", exception)

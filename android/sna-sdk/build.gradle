@@ -3,10 +3,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-repositories {
-    google()
-    mavenCentral()
-}
+ext.PUBLISH_ARTIFACT_ID = "sna-sdk"
+ext.POM_NAME = "SNA SDK"
+ext.POM_DESCRIPTION = "SIM Network Authentication (SNA) SDK for Android (cellular-enforced SNA calls + SIM/network info)."
 
 android {
     namespace = 'com.otplesssdk.sna'
@@ -43,7 +42,8 @@ dependencies {
 
     // Minimal dependencies for lightweight SDK
     // Kotlin Coroutines for async operations
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    // Note: sna-sdk uses coroutines but does not require Android Main dispatchers.
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
 
     // OkHttp for network calls (redirect following + event tracing)
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
@@ -53,3 +53,5 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
+
+apply from: rootProject.file("publish.gradle")
