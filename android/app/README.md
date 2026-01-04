@@ -1,14 +1,47 @@
-# SNA SDK Test App
+# Otpless SDK Test App
 
-This is a simple test application to manually test the SNA SDK on a real device.
+This is a manual **SDK test harness** for validating the end-to-end behavior of:
+
+- `sna-sdk`
+- `otp-sdk`
+- `utils-sdk`
 
 ## Features
 
-The test app provides a simple UI to test:
+The app is organized into tabs:
 
-1. **Get SIM Info** - Displays MCC, MNC, and mobile data status
-2. **Check Mobile Data Status** - Shows current mobile data state
-3. **Test SNA Authentication** - Enter a URL and test authentication with redirect handling
+### SNA
+
+- **Get SIM/Network info** (`SNASdk.getSimNetworkInfo()`)
+- **Check mobile data** (`SNASdk.isMobileDataEnabled()`)
+- **Run SNA** (`SNASdk.authenticate(...)`) with URL + timeout
+- **Run (blocking)** (`SNASdk.authenticateBlocking(...)`) to validate the Java/blocking wrapper behavior
+
+### OTP
+
+- Select channels: **SMS** / **WhatsApp**
+- Start/Stop listener (`OtpSdk.startListening(...)` / `OtpSdk.stop()`)
+- Print **SMS app hashes** (`OtpSdk.getAppHashes(...)`)
+- Quick **WhatsApp installed** check (`OtpSdk.isWhatsAppInstalled()`)
+
+> Note: receivers for SMS Retriever + WhatsApp OTP broadcasts are included via the `otp-sdk` library manifest.
+
+### Device Info
+
+- Request phone permissions (optional for richer MCC/MNC on some devices)
+- Warm up device info collection (`DeviceInfoCollector.warmUp(...)`)
+- Collect full **device_info JSON** (`DeviceInfoCollector.getDeviceInfoJson(...)`)
+- Granular snapshots:
+  - `DeviceInfoCollector.getNetworkInfo(...)`
+  - `DeviceInfoCollector.getIdentifiersInfo(...)`
+  - `DeviceInfoCollector.getAppPresenceInfo(...)`
+
+### Utils
+
+- **EventSender**: initialize + send custom events
+- **HttpClient headers**: set custom `x-*` headers and verify effective headers on requests
+- **ApiClient**: run requests via `ApiClient.execute(...)`
+- Captures and displays **effective request headers** after `HttpClient` header injection
 
 ## Building and Running
 
@@ -61,8 +94,10 @@ From the `android` directory:
 
 ## Notes
 
-- The app uses the SDK module directly via `implementation project(':android')`
+- The app uses local modules via:
+  - `implementation project(':sna-sdk')`
+  - `implementation project(':otp-sdk')`
+  - `implementation project(':utils-sdk')`
 - All network operations run in the background
-- Results are displayed in the text area at the top
-- The app automatically scrolls to show the latest results
+- Results are displayed in the in-app log views (copyable)
 

@@ -15,7 +15,7 @@ If you consume a published AAR:
 
 ```gradle
 dependencies {
-    implementation("com.sna:otp-sdk:<version>")
+    implementation("com.otplesssdk:otp-sdk:<version>")
 }
 ```
 
@@ -46,7 +46,8 @@ sdk.startListening(channels, object : OtpCallback {
         when (result) {
             is OtpResult.Success -> {
                 println("OTP (${result.source}) = ${result.otp}")
-                result.senderId?.let { println("SenderId=$it") }
+                // For SMS, senderAddress is the originating address (may be null depending on Play services/version).
+                result.senderAddress?.let { println("SenderAddress=$it") }
             }
             is OtpResult.Error -> {
                 println("Error (${result.source}) = ${result.reason}")
@@ -58,16 +59,26 @@ sdk.startListening(channels, object : OtpCallback {
 })
 ```
 
+If you need a custom OTP parsing configuration:
+
+```kotlin
+val sdk = OtpSdk.getInstance() ?: return
+sdk.startListening(
+    OtpConfig(
+        channels = setOf(OtpChannel.SMS, OtpChannel.WHATSAPP),
+    ),
+    object : OtpCallback {
+        override fun onResult(result: OtpResult) {
+            // handle result
+        }
+    }
+)
+```
+
 ### 4) Stop Listening
 
 ```kotlin
 sdk.stop()
-```
-
-Or without keeping the instance:
-
-```kotlin
-OtpSdk.stop()
 ```
 
 ## How it works
@@ -78,10 +89,21 @@ The SDK uses Google Play Services SMS Retriever. Your verification SMS must incl
 The receiver is declared in the library manifest and does not require SMS permissions.
 If Google Play Services is unavailable, the SDK reports `SMS_PLAY_SERVICES_UNAVAILABLE`.
 
+**Recommended SMS format (per Google SMS Retriever):**
+
+```text
+<#> OTP is 1234
+E41V/JcH1a5
+```
+
+Notes:
+- The **11-char hash should be the last line** (no extra text after it).
+- Ensure the hash you send matches the build you're installing (debug vs release signing can change it).
+
 You can print your 11-character app hash values using:
 
 ```kotlin
-val hashes = OtpSdk.getInstance()?.getAppHashes().orEmpty()
+val hashes = OtpSdk.getAppHashes(context)
 hashes.forEach { println("SMS hash (${it.packageName}): ${it.hash}") }
 ```
 
@@ -151,7 +173,7 @@ Package visibility for WhatsApp is also declared:
 ## Notes and limitations
 
 - SMS Retriever times out after 5 minutes; you will receive `SMS_TIMEOUT`.
-- WhatsApp handshake validity is 10 minutes by default in this SDK; use `whatsAppTimeoutMs` to adjust.
+- WhatsApp handshake validity is 10 minutes by default in this SDK.
 - The callback can be invoked multiple times (e.g., WhatsApp error then SMS success), and the SDK keeps listening on remaining active channels until they complete or you call `stop()`.
-- OTP parsing defaults to a digit-only 6-digit code with common keyword matching.
-- `senderId` is only available for SMS when provided by Play Services.
+- OTP parsing extracts the first 6-digit OTP, otherwise the first 4-digit OTP, from the message.
+- For SMS results, `senderAddress` is the SMS originating address and is only available when provided by Play Services.

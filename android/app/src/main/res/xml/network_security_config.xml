@@ -3,6 +3,7 @@
     <!-- Allow cleartext (HTTP) traffic for Jio domains -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">partnerapi.jio.com</domain>
+        <domain includeSubdomains="true">api-csp.airtel.in</domain>
     </domain-config>
     
     <!-- For other domains, use default (HTTPS only) -->

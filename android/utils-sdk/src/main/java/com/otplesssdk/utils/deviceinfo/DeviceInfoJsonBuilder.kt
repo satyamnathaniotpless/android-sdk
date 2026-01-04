@@ -1,303 +1,162 @@
 package com.otplesssdk.utils.deviceinfo
 
-/**
- * Builds device_info JSON (without outer braces) directly from collector outputs.
- * Returns the JSON content (without outer braces) that can be embedded in another JSON object.
- */
+import com.otplesssdk.utils.json.Json
+
 internal object DeviceInfoJsonBuilder {
     /**
-     * Build JSON string from collector outputs.
+     * Builds the `device_info` JSON payload content (without outer braces).
+     *
+     * Design goals:
+     * - Best-effort: missing sections are omitted.
+     * - No external JSON dependency: uses [Json] utility.
+     * - Stable keys for backend parsing.
      */
+    private fun MutableMap<String, Any?>.putIfNotNull(key: String, value: Any?) {
+        if (value != null) put(key, value)
+    }
+
+    private fun content(map: Map<String, Any?>): String {
+        return map.entries.joinToString(",") { (k, v) ->
+            "${Json.quote(k)}:${Json.value(v)}"
+        }
+    }
+
     fun build(
         osInfo: OsInfo?,
         buildInfo: BuildInfo?,
         hardwareInfo: HardwareInfo?,
         networkInfo: NetworkInfo?,
         appInfo: AppInfo?,
+        appPresenceInfo: AppPresenceInfo?,
+        referrerInfo: ReferrerInfo?,
         systemInfo: SystemInfo?,
         identifiersInfo: IdentifiersInfo?,
+        integrityInfo: IntegrityInfo?,
         sdkVersion: String?,
         sdkName: String?
     ): String {
-        
-        val deviceParts = mutableListOf<String>()
-        
-        // OS Information
-        val osParts = mutableListOf<String>()
-        // Explicit platform identifier (backend uses this to distinguish Android vs iOS vs Web SDK payloads).
-        osParts.add("\"platform\":\"android\"")
-        osInfo?.version?.let { osParts.add("\"version\":${escapeJson(it)}") }
-        osInfo?.apiLevel?.let { osParts.add("\"api_level\":$it") }
-        osInfo?.codename?.let { osParts.add("\"codename\":${escapeJson(it)}") }
-        if (osParts.isNotEmpty()) {
-            deviceParts.add("\"os_info\":{${osParts.joinToString(",")}}")
+
+        val root = linkedMapOf<String, Any?>()
+
+        val os = linkedMapOf<String, Any?>(
+            "platform" to "android"
+        )
+        osInfo?.let {
+            os["version"] = it.version
+            os["api_level"] = it.apiLevel
+            os.putIfNotNull("codename", it.codename)
         }
-        
-        // Hardware Information
-        val hardwareParts = mutableListOf<String>()
-        hardwareInfo?.deviceManufacturer?.let { hardwareParts.add("\"manufacturer\":${escapeJson(it)}") }
-        hardwareInfo?.deviceModel?.let { hardwareParts.add("\"model\":${escapeJson(it)}") }
-        hardwareInfo?.deviceBrand?.let { hardwareParts.add("\"brand\":${escapeJson(it)}") }
-        hardwareInfo?.deviceProduct?.let { hardwareParts.add("\"product\":${escapeJson(it)}") }
-        hardwareInfo?.totalMemory?.let { hardwareParts.add("\"total_memory\":$it") }
-        hardwareInfo?.totalRAM?.let { hardwareParts.add("\"total_ram\":$it") }
-        hardwareInfo?.storageAvailable?.let { hardwareParts.add("\"storage_available\":$it") }
-        hardwareInfo?.storageTotal?.let { hardwareParts.add("\"storage_total\":$it") }
-        if (hardwareParts.isNotEmpty()) {
-            deviceParts.add("\"hardware_info\":{${hardwareParts.joinToString(",")}}")
+        root["os_info"] = os
+
+        hardwareInfo?.let { hw ->
+            val m = linkedMapOf<String, Any?>()
+            m.putIfNotNull("manufacturer", hw.deviceManufacturer)
+            m.putIfNotNull("model", hw.deviceModel)
+            m.putIfNotNull("brand", hw.deviceBrand)
+            m.putIfNotNull("product", hw.deviceProduct)
+            m.putIfNotNull("total_memory", hw.totalMemory)
+            m.putIfNotNull("total_ram", hw.totalRAM)
+            m.putIfNotNull("storage_available", hw.storageAvailable)
+            m.putIfNotNull("storage_total", hw.storageTotal)
+            if (m.isNotEmpty()) root["hardware_info"] = m
         }
-        
-        // Identifiers
-        val identifierParts = mutableListOf<String>()
-        hardwareInfo?.deviceId?.let { identifierParts.add("\"device_id\":${escapeJson(it)}") }
-        identifiersInfo?.gaid?.let { identifierParts.add("\"gaid\":${escapeJson(it)}") }
-        identifiersInfo?.drmId?.let { identifierParts.add("\"drm_id\":${escapeJson(it)}") }
-        if (identifierParts.isNotEmpty()) {
-            deviceParts.add("\"identifiers\":{${identifierParts.joinToString(",")}}")
+
+        identifiersInfo?.let { ids ->
+            val m = linkedMapOf<String, Any?>()
+            m.putIfNotNull("gaid", ids.gaid)
+            m.putIfNotNull("drm_id", ids.drmId)
+            m.putIfNotNull("android_id", ids.androidId)
+            if (m.isNotEmpty()) root["identifiers"] = m
         }
-        
-        // Build Information
-        val buildParts = mutableListOf<String>()
-        buildInfo?.buildId?.let { buildParts.add("\"build_id\":${escapeJson(it)}") }
-        buildInfo?.buildType?.let { buildParts.add("\"build_type\":${escapeJson(it)}") }
-        buildInfo?.buildTags?.let { buildParts.add("\"build_tags\":${escapeJson(it)}") }
-        buildInfo?.buildHost?.let { buildParts.add("\"build_host\":${escapeJson(it)}") }
-        buildInfo?.buildUser?.let { buildParts.add("\"build_user\":${escapeJson(it)}") }
-        if (buildParts.isNotEmpty()) {
-            deviceParts.add("\"build_info\":{${buildParts.joinToString(",")}}")
+
+        appPresenceInfo?.let { p ->
+            val m = linkedMapOf<String, Any?>()
+            m["whatsapp"] = p.whatsapp
+            m["whatsapp_business"] = p.whatsappBusiness
+            m["whatsapp_any"] = p.whatsappAny
+            m["telegram"] = p.telegram
+            m["truecaller"] = p.truecaller
+            m["viber"] = p.viber
+            root["app_presence"] = m
         }
-        
-        // Network Information
-        val networkParts = mutableListOf<String>()
-        // Flat top-level network_info fields (as requested)
-        networkInfo?.networkType?.let { networkParts.add("\"type\":${escapeJson(it)}") }
-        networkInfo?.isConnected?.let { networkParts.add("\"is_connected\":$it") }
-        networkInfo?.hasInternetCapability?.let { networkParts.add("\"has_internet_capability\":$it") }
-        networkInfo?.isValidated?.let { networkParts.add("\"is_validated\":$it") }
-        networkInfo?.isVpnTransportActive?.let { networkParts.add("\"is_vpn_transport_active\":$it") }
-        networkInfo?.hasSim?.let { networkParts.add("\"has_sim\":$it") }
-        networkInfo?.phoneType?.let { networkParts.add("\"phone_type\":${escapeJson(it)}") }
-        networkInfo?.simSlotCount?.let { networkParts.add("\"sim_slot_count\":$it") }
-        networkInfo?.dataNetworkType?.let { networkParts.add("\"data_network_type\":$it") }
-        networkInfo?.callState?.let { networkParts.add("\"call_state\":$it") }
 
-        networkInfo?.subscriptions?.takeIf { it.isNotEmpty() }?.let { subs ->
-            val arr = subs.mapNotNull { s ->
-                val parts = mutableListOf<String>()
-                s.subscriptionId?.let { parts.add("\"subscription_id\":$it") }
-                s.simSlotIndex?.let { parts.add("\"sim_slot_index\":$it") }
-                s.isEmbedded?.let { parts.add("\"is_embedded\":$it") }
-                s.dataRoamingEnabled?.let { parts.add("\"data_roaming_enabled\":$it") }
-                s.isOpportunistic?.let { parts.add("\"is_opportunistic\":$it") }
-                s.simState?.let { parts.add("\"sim_state\":${escapeJson(it)}") }
+        integrityInfo?.token?.let { token ->
+            val m = linkedMapOf<String, Any?>()
+            m["token"] = token
+            integrityInfo.tokenTimestampMs?.let { ts -> m["token_timestamp_ms"] = ts }
+            if (m.isNotEmpty()) root["integrity_info"] = m
+        }
 
-                s.network?.let { n ->
-                    // Also expose key scalar fields at subscription top-level (as requested)
-                    n.dataNetworkType?.let { parts.add("\"data_network_type\":$it") }
-                    n.voiceNetworkType?.let { parts.add("\"voice_network_type\":$it") }
-                    n.carrierId?.let { parts.add("\"carrier_id\":$it") }
-                    n.isRoaming?.let { parts.add("\"is_roaming\":$it") }
+        buildInfo?.let { b ->
+            val m = linkedMapOf<String, Any?>()
+            m.putIfNotNull("build_id", b.buildId)
+            m.putIfNotNull("build_type", b.buildType)
+            m.putIfNotNull("build_tags", b.buildTags)
+            m.putIfNotNull("build_host", b.buildHost)
+            m.putIfNotNull("build_user", b.buildUser)
+            if (m.isNotEmpty()) root["build_info"] = m
+        }
 
-                    val np = mutableListOf<String>()
-                    n.networkOperator?.let { np.add("\"operator\":${escapeJson(it)}") }
-                    n.networkOperatorName?.let { np.add("\"operator_name\":${escapeJson(it)}") }
-                    n.networkCountryIso?.let { np.add("\"country_iso\":${escapeJson(it)}") }
-                    if (np.isNotEmpty()) parts.add("\"network\":{${np.joinToString(",")}}")
-                }
+        networkInfo?.let { n ->
+            val m = linkedMapOf<String, Any?>()
+            m.putIfNotNull("type", n.networkType)
+            m.putIfNotNull("is_connected", n.isConnected)
+            m.putIfNotNull("has_internet_capability", n.hasInternetCapability)
+            m.putIfNotNull("is_validated", n.isValidated)
+            m.putIfNotNull("is_vpn_transport_active", n.isVpnTransportActive)
+            m.putIfNotNull("has_sim", n.hasSim)
+            m.putIfNotNull("phone_type", n.phoneType)
+            m.putIfNotNull("is_cellular_data_enabled", n.isCellularDataEnabled)
 
-                s.sim?.let { si ->
-                    // Also expose key scalar fields at subscription top-level (as requested)
-                    si.isDataEnabled?.let { parts.add("\"is_data_enabled\":$it") }
-
-                    val sp = mutableListOf<String>()
-                    si.simOperator?.let { sp.add("\"operator\":${escapeJson(it)}") }
-                    si.simOperatorName?.let { sp.add("\"operator_name\":${escapeJson(it)}") }
-                    si.simCountryIso?.let { sp.add("\"country_iso\":${escapeJson(it)}") }
-                    if (sp.isNotEmpty()) parts.add("\"sim\":{${sp.joinToString(",")}}")
-                }
-
-                if (parts.isEmpty()) null else "{${parts.joinToString(",")}}"
+            n.defaultData?.subscriptionId?.let { subId ->
+                val d = linkedMapOf<String, Any?>("subscription_id" to subId)
+                n.defaultData.simMccMnc?.let { d["sim_mcc_mnc"] = it }
+                n.defaultData.networkMccMnc?.let { d["network_mcc_mnc"] = it }
+                m["default_data"] = d
             }
-            networkParts.add("\"subscriptions\":[${arr.joinToString(",")}]")
-        }
-
-        // Keep default_data as primary (host app may not grant phone permissions, so subscriptions[] might be missing)
-        networkInfo?.defaultData?.let { defaultData ->
-            val parts = mutableListOf<String>()
-            defaultData.subscriptionId?.let { parts.add("\"subscription_id\":$it") }
-
-            defaultData.network?.let { n ->
-                // scalar fields at default_data top-level (as requested)
-                n.dataNetworkType?.let { parts.add("\"data_network_type\":$it") }
-                n.voiceNetworkType?.let { parts.add("\"voice_network_type\":$it") }
-                n.carrierId?.let { parts.add("\"carrier_id\":$it") }
-                n.isRoaming?.let { parts.add("\"is_roaming\":$it") }
-
-                val np = mutableListOf<String>()
-                n.networkOperator?.let { np.add("\"operator\":${escapeJson(it)}") }
-                n.networkOperatorName?.let { np.add("\"operator_name\":${escapeJson(it)}") }
-                n.networkCountryIso?.let { np.add("\"country_iso\":${escapeJson(it)}") }
-                if (np.isNotEmpty()) parts.add("\"network\":{${np.joinToString(",")}}")
+            n.defaultCall?.subscriptionId?.let { subId ->
+                val d = linkedMapOf<String, Any?>("subscription_id" to subId)
+                n.defaultCall.simMccMnc?.let { d["sim_mcc_mnc"] = it }
+                n.defaultCall.networkMccMnc?.let { d["network_mcc_mnc"] = it }
+                m["default_call"] = d
             }
 
-            defaultData.sim?.let { si ->
-                // scalar fields at default_data top-level (as requested)
-                si.isDataEnabled?.let { parts.add("\"is_data_enabled\":$it") }
+            if (m.isNotEmpty()) root["network_info"] = m
+        }
 
-                val sp = mutableListOf<String>()
-                si.simOperator?.let { sp.add("\"operator\":${escapeJson(it)}") }
-                si.simOperatorName?.let { sp.add("\"operator_name\":${escapeJson(it)}") }
-                si.simCountryIso?.let { sp.add("\"country_iso\":${escapeJson(it)}") }
-                if (sp.isNotEmpty()) parts.add("\"sim\":{${sp.joinToString(",")}}")
+        run {
+            val m = linkedMapOf<String, Any?>()
+            appInfo?.let { a ->
+                m.putIfNotNull("version", a.appVersion)
+                m.putIfNotNull("version_code", a.appVersionCode)
+                m.putIfNotNull("package_name", a.appPackageName)
+                m.putIfNotNull("target_sdk", a.appTargetSdk)
+                m.putIfNotNull("min_sdk", a.appMinSdk)
+                m.putIfNotNull("install_source", a.installSource)
+                m.putIfNotNull("signature_hash", a.appSignatureHash)
+                m.putIfNotNull("first_install_time", a.firstInstallTime)
+                m.putIfNotNull("last_update_time", a.lastUpdateTime)
+                m.putIfNotNull("is_instant_app", a.isInstantApp)
             }
-
-            if (parts.isNotEmpty()) {
-                networkParts.add("\"default_data\":{${parts.joinToString(",")}}")
-            }
+            m.putIfNotNull("referrer", referrerInfo?.referrer)
+            if (m.isNotEmpty()) root["app_info"] = m
         }
 
-        // Strict: emit default_call only when platform provides a valid default voice subscription.
-        networkInfo?.defaultCall?.let { dc ->
-            val parts = mutableListOf<String>()
-            dc.subscriptionId?.let { parts.add("\"subscription_id\":$it") }
-
-            dc.network?.let { n ->
-                // scalar fields at default_call top-level (as requested)
-                n.dataNetworkType?.let { parts.add("\"data_network_type\":$it") }
-                n.voiceNetworkType?.let { parts.add("\"voice_network_type\":$it") }
-                n.carrierId?.let { parts.add("\"carrier_id\":$it") }
-                n.isRoaming?.let { parts.add("\"is_roaming\":$it") }
-
-                val np = mutableListOf<String>()
-                n.networkOperator?.let { np.add("\"operator\":${escapeJson(it)}") }
-                n.networkOperatorName?.let { np.add("\"operator_name\":${escapeJson(it)}") }
-                n.networkCountryIso?.let { np.add("\"country_iso\":${escapeJson(it)}") }
-                if (np.isNotEmpty()) parts.add("\"network\":{${np.joinToString(",")}}")
-            }
-
-            dc.sim?.let { si ->
-                // scalar fields at default_call top-level (as requested)
-                si.isDataEnabled?.let { parts.add("\"is_data_enabled\":$it") }
-
-                val sp = mutableListOf<String>()
-                si.simOperator?.let { sp.add("\"operator\":${escapeJson(it)}") }
-                si.simOperatorName?.let { sp.add("\"operator_name\":${escapeJson(it)}") }
-                si.simCountryIso?.let { sp.add("\"country_iso\":${escapeJson(it)}") }
-                if (sp.isNotEmpty()) parts.add("\"sim\":{${sp.joinToString(",")}}")
-            }
-
-            if (parts.isNotEmpty()) {
-                networkParts.add("\"default_call\":{${parts.joinToString(",")}}")
-            }
+        run {
+            val m = linkedMapOf<String, Any?>()
+            m.putIfNotNull("version", sdkVersion)
+            m.putIfNotNull("name", sdkName)
+            if (m.isNotEmpty()) root["sdk_info"] = m
         }
-        if (networkParts.isNotEmpty()) {
-            deviceParts.add("\"network_info\":{${networkParts.joinToString(",")}}")
-        }
-        
-        // App Information
-        val appParts = mutableListOf<String>()
-        appInfo?.appVersion?.let { appParts.add("\"version\":${escapeJson(it)}") }
-        appInfo?.appVersionCode?.let { appParts.add("\"version_code\":$it") }
-        appInfo?.appPackageName?.let { appParts.add("\"package_name\":${escapeJson(it)}") }
-        appInfo?.appTargetSdk?.let { appParts.add("\"target_sdk\":$it") }
-        appInfo?.appMinSdk?.let { appParts.add("\"min_sdk\":$it") }
-        appInfo?.installSource?.let { appParts.add("\"install_source\":${escapeJson(it)}") }
-        appInfo?.referrer?.let { appParts.add("\"referrer\":${escapeJson(it)}") }
-        appInfo?.appSignatureHash?.let { appParts.add("\"signature_hash\":${escapeJson(it)}") }
-        appInfo?.signingCerts?.let { 
-            appParts.add("\"signing_certs\":[${it.joinToString(",") { cert -> escapeJson(cert) }}]")
-        }
-        appInfo?.firstInstallTime?.let { appParts.add("\"first_install_time\":$it") }
-        appInfo?.lastUpdateTime?.let { appParts.add("\"last_update_time\":$it") }
-        appInfo?.isInstantApp?.let { appParts.add("\"is_instant_app\":$it") }
-        if (appParts.isNotEmpty()) {
-            deviceParts.add("\"app_info\":{${appParts.joinToString(",")}}")
-        }
-        
-        // SDK Information
-        val sdkParts = mutableListOf<String>()
-        sdkVersion?.let { sdkParts.add("\"version\":${escapeJson(it)}") }
-        sdkName?.let { sdkParts.add("\"name\":${escapeJson(it)}") }
-        if (sdkParts.isNotEmpty()) {
-            deviceParts.add("\"sdk_info\":{${sdkParts.joinToString(",")}}")
-        }
-        
-        // System Information
-        val systemParts = mutableListOf<String>()
-        systemInfo?.timezone?.let { systemParts.add("\"timezone\":${escapeJson(it)}") }
-        systemInfo?.locale?.let { systemParts.add("\"locale\":${escapeJson(it)}") }
-        systemInfo?.isEmulator?.let { systemParts.add("\"is_emulator\":$it") }
-        if (systemParts.isNotEmpty()) {
-            deviceParts.add("\"system_info\":{${systemParts.joinToString(",")}}")
-        }
-        
-        return deviceParts.joinToString(",")
-    }
 
-    fun buildMinimal(
-        sdkVersion: String?,
-        sdkName: String?,
-        osVersion: String?,
-        osApiLevel: Int?,
-        deviceManufacturer: String?,
-        deviceModel: String?,
-        deviceBrand: String?,
-        deviceProduct: String?
-    ): String {
-        val deviceParts = mutableListOf<String>()
-        val osParts = mutableListOf<String>()
-        osParts.add("\"platform\":\"android\"")
-        osVersion?.let { osParts.add("\"version\":${escapeJson(it)}") }
-        osApiLevel?.let { osParts.add("\"api_level\":$it") }
-        if (osParts.isNotEmpty()) deviceParts.add("\"os_info\":{${osParts.joinToString(",")}}")
-
-        val hwParts = mutableListOf<String>()
-        deviceManufacturer?.let { hwParts.add("\"manufacturer\":${escapeJson(it)}") }
-        deviceModel?.let { hwParts.add("\"model\":${escapeJson(it)}") }
-        deviceBrand?.let { hwParts.add("\"brand\":${escapeJson(it)}") }
-        deviceProduct?.let { hwParts.add("\"product\":${escapeJson(it)}") }
-        if (hwParts.isNotEmpty()) deviceParts.add("\"hardware_info\":{${hwParts.joinToString(",")}}")
-
-        val sdkParts = mutableListOf<String>()
-        sdkVersion?.let { sdkParts.add("\"version\":${escapeJson(it)}") }
-        sdkName?.let { sdkParts.add("\"name\":${escapeJson(it)}") }
-        if (sdkParts.isNotEmpty()) deviceParts.add("\"sdk_info\":{${sdkParts.joinToString(",")}}")
-
-        return deviceParts.joinToString(",")
-    }
-    
-    /**
-     * Escape JSON string value. Handles all special characters including control characters.
-     */
-    fun escapeJson(value: String): String {
-        val sb = StringBuilder(value.length + 10)
-        sb.append('"')
-        var i = 0
-        while (i < value.length) {
-            val codePoint = value.codePointAt(i)
-            val charCount = Character.charCount(codePoint)
-            when (codePoint) {
-                '\\'.code -> sb.append("\\\\")
-                '"'.code -> sb.append("\\\"")
-                '\n'.code -> sb.append("\\n")
-                '\r'.code -> sb.append("\\r")
-                '\t'.code -> sb.append("\\t")
-                '\b'.code -> sb.append("\\b")
-                0x000C -> sb.append("\\f") // Form feed
-                else -> {
-                    // Escape control characters (U+0000 to U+001F) and any unpaired surrogate halves.
-                    if (codePoint < 0x20 || (codePoint in 0xD800..0xDFFF)) {
-                        sb.append("\\u")
-                        sb.append(String.format("%04x", codePoint))
-                    } else {
-                        // Append the full Unicode code point (including supplementary characters).
-                        sb.append(Character.toChars(codePoint))
-                    }
-                }
-            }
-            i += charCount
+        systemInfo?.let { s ->
+            val m = linkedMapOf<String, Any?>()
+            m.putIfNotNull("timezone", s.timezone)
+            m.putIfNotNull("locale", s.locale)
+            m.putIfNotNull("is_emulator", s.isEmulator)
+            if (m.isNotEmpty()) root["system_info"] = m
         }
-        sb.append('"')
-        return sb.toString()
+
+        return content(root)
     }
 }

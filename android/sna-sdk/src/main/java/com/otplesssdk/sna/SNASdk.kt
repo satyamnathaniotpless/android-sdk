@@ -1,8 +1,8 @@
 package com.otplesssdk.sna
 
 import android.content.Context
+import android.os.Looper
 import android.os.SystemClock
-import com.otplesssdk.sna.callback.SnaCallback
 import com.otplesssdk.sna.models.FailureReason
 import com.otplesssdk.sna.models.SimNetworkInfo
 import com.otplesssdk.sna.models.SnaResult
@@ -11,10 +11,9 @@ import com.otplesssdk.sna.utils.NetworkUtils
 import com.otplesssdk.sna.utils.SimUtils
 import com.otplesssdk.sna.utils.SnaConfig
 import com.otplesssdk.sna.utils.SnaUrlHandler
-import com.otplesssdk.utils.coroutines.SdkCoroutineScope
 import com.otplesssdk.utils.event.EventSender
 import com.otplesssdk.utils.logger.SdkLogger
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * Main SDK class for SIM and network information
@@ -25,11 +24,30 @@ import kotlinx.coroutines.launch
  * - SNA authentication via URL over cellular
  */
 class SNASdk private constructor(private val context: Context) {
-    private val scope = SdkCoroutineScope.createMainScope(immediate = false)
-
     companion object {
         @Volatile
         private var instance: SNASdk? = null
+
+        private const val TAG = "SNASdk"
+
+        private data class EventSenderConfig(
+            val appId: String?,
+            val eventEndpoint: String?
+        )
+
+        /**
+         * Tracks EventSender configuration that this SDK has already applied.
+         * Used to detect re-initialization calls with different non-null parameters.
+         */
+        @Volatile
+        private var appliedEventSenderConfig: EventSenderConfig? = null
+
+        /**
+         * Tracks an EventSender config currently scheduled to be applied outside the init lock.
+         * This prevents a race where we "record" a config change but never actually apply it.
+         */
+        @Volatile
+        private var pendingEventSenderConfig: EventSenderConfig? = null
         
         private const val SDK_NAME = "sna-sdk"
         private const val SDK_VERSION = "1.0.0"
@@ -49,24 +67,77 @@ class SNASdk private constructor(private val context: Context) {
             appId: String? = null,
             eventEndpoint: String? = null
         ): SNASdk {
-            return instance ?: synchronized(this) {
-                instance ?: SNASdk(context.applicationContext).also { 
-                    instance = it
-                    // Initialize EventSender
-                    EventSender.initialize(
-                        context = context.applicationContext,
-                        sdkName = SDK_NAME,
-                        sdkVersion = SDK_VERSION,
-                        appId = appId,
-                        eventEndpoint = eventEndpoint
+            val appContext = context.applicationContext
+            val normalizedAppId = appId?.takeIf { it.isNotBlank() }
+            val normalizedEndpoint = eventEndpoint?.takeIf { it.isNotBlank() }
+
+            var sdk: SNASdk
+            var shouldSendInitEvent = false
+            var configToApply: EventSenderConfig? = null
+
+            synchronized(this) {
+                val existing = instance
+                if (existing == null) {
+                    sdk = SNASdk(appContext).also { instance = it }
+                    shouldSendInitEvent = true
+                } else {
+                    sdk = existing
+                }
+
+                val currentConfig = pendingEventSenderConfig ?: appliedEventSenderConfig
+                val isFirstEventSenderInit = currentConfig == null
+                val wantsUpdateWithDifferentNonNullParams =
+                    (normalizedAppId != null && normalizedAppId != currentConfig?.appId) ||
+                    (normalizedEndpoint != null && normalizedEndpoint != currentConfig?.eventEndpoint)
+
+                if (isFirstEventSenderInit || wantsUpdateWithDifferentNonNullParams) {
+                    if (wantsUpdateWithDifferentNonNullParams) {
+                        SdkLogger.w(
+                            TAG,
+                            "initialize() called again with different non-null parameters; reinitializing EventSender. " +
+                                "appId: ${currentConfig?.appId} -> $normalizedAppId, " +
+                                "eventEndpoint: ${currentConfig?.eventEndpoint} -> $normalizedEndpoint"
+                        )
+                    }
+
+                    val mergedConfig = EventSenderConfig(
+                        appId = normalizedAppId ?: currentConfig?.appId,
+                        eventEndpoint = normalizedEndpoint ?: currentConfig?.eventEndpoint
                     )
-                    // Send initialization event
-                    EventSender.sendEvent(
-                        eventName = "sna_sdk_initialized",
-                        properties = emptyMap()
-                    )
+
+                    // Coalesce concurrent updates: if the same config is already pending, no need to schedule again.
+                    if (pendingEventSenderConfig != mergedConfig) {
+                        pendingEventSenderConfig = mergedConfig
+                        configToApply = mergedConfig
+                    }
                 }
             }
+
+            // Potentially slow work should happen outside the synchronized block.
+            configToApply?.let { cfg ->
+                EventSender.initialize(
+                    context = appContext,
+                    sdkName = SDK_NAME,
+                    sdkVersion = SDK_VERSION,
+                    appId = cfg.appId,
+                    eventEndpoint = cfg.eventEndpoint
+                )
+                synchronized(this) {
+                    if (pendingEventSenderConfig == cfg) {
+                        appliedEventSenderConfig = cfg
+                        pendingEventSenderConfig = null
+                    }
+                }
+            }
+
+            if (shouldSendInitEvent) {
+                EventSender.sendEvent(
+                    eventName = "sna_sdk_initialized",
+                    properties = emptyMap()
+                )
+            }
+
+            return sdk
         }
         
         /**
@@ -84,7 +155,7 @@ class SNASdk private constructor(private val context: Context) {
          */
         @JvmStatic
         fun setLoggingEnabled(enabled: Boolean) {
-            SdkLogger.setDebugEnabled(enabled)
+            SdkLogger.setEnabled(enabled)
         }
     }
 
@@ -133,112 +204,98 @@ class SNASdk private constructor(private val context: Context) {
         return enabled
     }
 
-    fun authenticate(
+    /**
+     * Run SNA authentication over cellular.
+     *
+     * This is a suspending API: the caller controls the threading model.
+     * - If called from Main, it will suspend while work runs on IO and resume on Main.
+     * - If called from a background coroutine, it will resume on that background context.
+     */
+    suspend fun authenticate(
         url: String,
-        callback: SnaCallback
-    ) {
-        SdkLogger.d("SNASdk", "authenticate(url, callback) called")
-        authenticate(
-            url = url,
-            timeoutSeconds = SnaConfig.DEFAULT_TIMEOUT_SECONDS,
-            callback = callback
-        )
-    }
+        timeoutSeconds: Long = SnaConfig.DEFAULT_TIMEOUT_SECONDS
+    ): SnaResult {
+        SdkLogger.d("SNASdk", "authenticate(url, timeoutSeconds) called")
 
-    fun authenticate(
-        url: String,
-        timeoutSeconds: Long,
-        callback: SnaCallback
-    ) {
-        SdkLogger.d("SNASdk", "authenticate(url, timeoutSeconds, callback) called")
-        authenticate(
-            url = url,
-            timeoutSeconds = timeoutSeconds,
-            callback = callback
-        )
-    }
-
-    fun authenticate(
-        url: String,
-        timeoutSeconds: Long = SnaConfig.DEFAULT_TIMEOUT_SECONDS,
-        callback: SnaCallback
-    ) {
-        SdkLogger.d("SNASdk", "authenticate(url, timeoutSeconds, callback) called")
-        
-        // Redact URL for event (base URL only, no query params)
-        val redactedUrl = redactUrl(url)
-        
         // Send authenticate started event
         EventSender.sendEvent(
             eventName = "sna_authenticate_started",
             properties = mapOf(
-                "url" to redactedUrl,
+                "url" to url,
                 "timeout_seconds" to timeoutSeconds
             )
         )
-        
-        scope.launch {
-            val startMs = SystemClock.elapsedRealtime()
-            try {
-                val result: SnaResult = SnaUrlHandler.execute(
-                    context = context,
-                    urlString = url,
-                    timeoutSeconds = timeoutSeconds
-                )
 
-                // Send success or failure event based on result
-                when (result) {
-                    is SnaResult.Success -> {
-                        EventSender.sendEvent(
-                            eventName = "sna_authenticate_success",
-                            properties = buildSuccessEventProperties(result, redactedUrl)
-                        )
-                    }
+        val startMs = SystemClock.elapsedRealtime()
+        return try {
+            val result: SnaResult = SnaUrlHandler.execute(
+                context = context,
+                urlString = url,
+                timeoutSeconds = timeoutSeconds
+            )
 
-                    is SnaResult.Failure -> {
-                        EventSender.sendEvent(
-                            eventName = "sna_authenticate_failure",
-                            properties = buildFailureEventProperties(result, redactedUrl)
-                        )
-                    }
+            // Send success or failure event based on result
+            when (result) {
+                is SnaResult.Success -> {
+                    EventSender.sendEvent(
+                        eventName = "sna_authenticate_success",
+                        properties = buildSuccessEventProperties(result, url)
+                    )
                 }
 
-                callback.onResult(result)
-            } catch (e: Exception) {
-                val failure = SnaResult.Failure(
-                    reason = FailureReason.UNKNOWN_ERROR,
-                    detail = e.message ?: "Unknown error",
-                    timings = SnaTimings(totalMs = SystemClock.elapsedRealtime() - startMs)
-                )
-
-                EventSender.sendEvent(
-                    eventName = "sna_authenticate_failure",
-                    properties = buildFailureEventProperties(failure, redactedUrl)
-                )
-                SdkLogger.e("SNASdk", "authenticate() failed with exception", e)
-                callback.onResult(failure)
+                is SnaResult.Failure -> {
+                    EventSender.sendEvent(
+                        eventName = "sna_authenticate_failure",
+                        properties = buildFailureEventProperties(result, url)
+                    )
+                }
             }
+
+            result
+        } catch (e: Exception) {
+            val failure = SnaResult.Failure(
+                reason = FailureReason.UNKNOWN_ERROR,
+                detail = e.message ?: "Unknown error",
+                timings = SnaTimings(totalMs = SystemClock.elapsedRealtime() - startMs)
+            )
+
+            EventSender.sendEvent(
+                eventName = "sna_authenticate_failure",
+                properties = buildFailureEventProperties(failure, url)
+            )
+            SdkLogger.e("SNASdk", "authenticate() failed with exception", e)
+            failure
         }
     }
-    
+
     /**
-     * Redact URL to base URL only (remove query params and fragments)
+     * Blocking wrapper for Java/non-coroutine callers.
+     *
+     * IMPORTANT: This blocks the calling thread. Do not call from the main thread.
      */
-    private fun redactUrl(url: String): String {
-        val noFragment = url.substringBefore('#')
-        val base = noFragment.substringBefore('?')
-        return if (noFragment.contains('?')) "$base?…" else base
+    @JvmOverloads
+    fun authenticateBlocking(
+        url: String,
+        timeoutSeconds: Long = SnaConfig.DEFAULT_TIMEOUT_SECONDS
+    ): SnaResult {
+        check(Looper.myLooper() != Looper.getMainLooper()) {
+            "authenticateBlocking() must not be called on the main thread. Use authenticate() from a coroutine instead."
+        }
+        return runBlocking {
+            authenticate(url = url, timeoutSeconds = timeoutSeconds)
+        }
     }
     
     /**
      * Build event properties for successful authentication
      */
-    private fun buildSuccessEventProperties(result: SnaResult.Success, redactedUrl: String): Map<String, Any?> {
+    private fun buildSuccessEventProperties(result: SnaResult.Success, url: String): Map<String, Any?> {
         val props = mutableMapOf<String, Any?>(
+            "url" to url,
             "http_code" to result.response.httpCode,
             "redirect_count" to result.redirects.size,
             "total_ms" to result.timings.totalMs,
-            "final_url" to redactUrl(result.response.finalUrl),
+            "final_url" to result.response.finalUrl,
             "has_response_body" to (result.response.body != null),
             "response_body_truncated" to result.response.bodyTruncated
         )
@@ -252,8 +309,9 @@ class SNASdk private constructor(private val context: Context) {
     /**
      * Build event properties for failed authentication
      */
-    private fun buildFailureEventProperties(result: SnaResult.Failure, redactedUrl: String): Map<String, Any?> {
+    private fun buildFailureEventProperties(result: SnaResult.Failure, url: String): Map<String, Any?> {
         val props = mutableMapOf<String, Any?>(
+            "url" to url,
             "failure_reason" to result.reason.name,
             "redirect_count" to result.redirects.size,
             "total_ms" to result.timings.totalMs
@@ -263,7 +321,7 @@ class SNASdk private constructor(private val context: Context) {
         result.timings.cellularAcquireMs?.let { props["cellular_acquire_ms"] = it }
         result.timings.processBindMs?.let { props["process_bind_ms"] = it }
         result.response?.httpCode?.let { props["http_code"] = it }
-        result.response?.finalUrl?.let { props["final_url"] = redactUrl(it) }
+        result.response?.finalUrl?.let { props["final_url"] = it }
         
         return props
     }

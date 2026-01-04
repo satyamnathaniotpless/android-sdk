@@ -2,9 +2,6 @@ package com.otplesssdk.utils.deviceinfo
 
 import android.os.Build
 
-/**
- * Collects build-related information.
- */
 internal object BuildInfoCollector {
     fun collect(): BuildInfo {
         return BuildInfo(

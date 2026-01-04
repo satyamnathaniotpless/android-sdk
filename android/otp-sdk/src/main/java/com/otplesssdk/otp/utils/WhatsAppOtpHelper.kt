@@ -3,10 +3,9 @@ package com.otplesssdk.otp.utils
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import com.otplesssdk.otp.receiver.WhatsAppOtpCallbackReceiver
+import com.otplesssdk.utils.deviceinfo.DeviceInfoCollector
 
 internal object WhatsAppOtpHelper {
     const val PACKAGE_WHATSAPP = "com.whatsapp"
@@ -16,44 +15,38 @@ internal object WhatsAppOtpHelper {
     const val ACTION_OTP_RETRIEVED = "com.whatsapp.otp.OTP_RETRIEVED"
     const val ACTION_OTP_ERROR = "com.whatsapp.otp.OTP_ERROR"
 
-    // Unique action for the PendingIntent target in the host app.
-    const val ACTION_WHATSAPP_OTP_CALLBACK = "com.otplesssdk.otp.WHATSAPP_OTP_CALLBACK"
-
     const val EXTRA_PENDING_INTENT = "_ci_"
     const val EXTRA_CODE = "code"
     const val EXTRA_ERROR = "error"
     const val EXTRA_ERROR_MESSAGE = "error_message"
 
     fun isWhatsAppInstalled(context: Context): Boolean {
-        return isPackageInstalled(context, PACKAGE_WHATSAPP) ||
-            isPackageInstalled(context, PACKAGE_WHATSAPP_BUSINESS)
+        return DeviceInfoCollector.getAppPresenceInfo(context.applicationContext).whatsappAny
     }
 
     fun sendHandshake(context: Context): Boolean {
-        val packages = listOf(PACKAGE_WHATSAPP, PACKAGE_WHATSAPP_BUSINESS)
-        val installedPackages = packages.filter { isPackageInstalled(context, it) }
+        val presence = DeviceInfoCollector.getAppPresenceInfo(context.applicationContext)
+        val installedPackages = buildList {
+            if (presence.whatsapp) add(PACKAGE_WHATSAPP)
+            if (presence.whatsappBusiness) add(PACKAGE_WHATSAPP_BUSINESS)
+        }
         if (installedPackages.isEmpty()) {
             return false
         }
 
-        // WhatsApp needs to be able to attach OTP extras to the callback intent,
-        // so the PendingIntent must be mutable on Android 12+.
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                PendingIntent.FLAG_MUTABLE
-            } else {
-                0
-            }
+        // Per Meta's "without SDK" guidance, WhatsApp uses the PendingIntent creator package
+        // for eligibility checks. We do not rely on it for delivery; WhatsApp broadcasts OTP_RETRIEVED/OTP_ERROR.
+        // On Android 12+ we must explicitly declare mutability; immutable is sufficient and safer here.
+        val flags = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.FLAG_IMMUTABLE
+        } else {
+            0
+        }) or PendingIntent.FLAG_UPDATE_CURRENT
 
-        val callbackIntent = Intent(context, WhatsAppOtpCallbackReceiver::class.java).apply {
-            action = ACTION_WHATSAPP_OTP_CALLBACK
-            setPackage(context.packageName)
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
+        val pendingIntent = PendingIntent.getActivity(
             context,
-            /* requestCode = */ 1001,
-            callbackIntent,
+            /* requestCode = */ 0,
+            Intent(),
             flags
         )
 
@@ -72,15 +65,5 @@ internal object WhatsAppOtpHelper {
 
     fun isValidCreatorPackage(packageName: String?): Boolean {
         return packageName == PACKAGE_WHATSAPP || packageName == PACKAGE_WHATSAPP_BUSINESS
-    }
-
-    @Suppress("DEPRECATION")
-    private fun isPackageInstalled(context: Context, packageName: String): Boolean {
-        return try {
-            context.packageManager.getPackageInfo(packageName, 0)
-            true
-        } catch (_: PackageManager.NameNotFoundException) {
-            false
-        }
     }
 }

@@ -3,10 +3,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-repositories {
-    google()
-    mavenCentral()
-}
+ext.PUBLISH_ARTIFACT_ID = "utils-sdk"
+ext.POM_NAME = "Utils SDK"
+ext.POM_DESCRIPTION = "Shared foundation module for Otpless Android SDKs (networking, events, IDs, logging, device info)."
 
 android {
     namespace = 'com.otplesssdk.utils'
@@ -46,9 +45,6 @@ android {
 }
 
 dependencies {
-    // NOTE: Keep this version compatible with compileSdk=34.
-    implementation 'androidx.core:core-ktx:1.13.1'
-
     // Kotlin Coroutines for async operations
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 
@@ -65,3 +61,5 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
+
+apply from: rootProject.file("publish.gradle")
